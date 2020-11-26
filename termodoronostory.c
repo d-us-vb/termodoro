@@ -360,6 +360,38 @@ int stringToDisplayLine(char* const display_string, char ink)
 
 // this way, the main thread can handle exiting when the keyboard
 
+/*
+ * timeToDisplayLine
+ * take an integer number of seconds and convert it to a mm:ss format and write
+ * that to the display line.
+ */
+void timeToDisplayLine(int seconds)
+{
+    char time[6];
+
+    int ten_minutes = ((seconds / 60) % 60 - ((seconds / 60) % 10)) / 10;
+    int unit_minutes = (seconds / 60) % 10;
+    int ten_seconds = (seconds / 10) % 6;
+    int unit_seconds = seconds % 10;
+
+//    printf("%d %d : %d %d \r\n", ten_minutes, unit_minutes, ten_seconds, unit_seconds); // for debugging
+    sprintf(time, "%d%d:%d%d",
+            ten_minutes,
+            unit_minutes,
+            ten_seconds,
+            unit_seconds);
+
+    stringToDisplayLine(time, '$');
+
+    write(1, "\x1b[5;1H", 6);
+
+    for(int i = 0; i < 8; i++)
+    {
+        write(1, display_line[i], 80);
+        write(1, "\r\n", 2);
+    }
+}
+h
 
 
 int main(int argc, char** argv) {
@@ -386,32 +418,11 @@ int main(int argc, char** argv) {
   write(1, "\x1b[2K", 4);
 
 
+  write(1, "\x1b[2J", 4);
   while(1)
   {
-    char time[6];
+      timeToDisplayLine(seconds);
 
-    int ten_minutes = ((seconds / 60) % 60 - ((seconds / 60) % 10)) / 10;
-    int unit_minutes = (seconds / 60) % 10;
-    int ten_seconds = (seconds / 10) % 6;
-    int unit_seconds = seconds % 10;
-
-//    printf("%d %d : %d %d \r\n", ten_minutes, unit_minutes, ten_seconds, unit_seconds); // for debugging
-    sprintf(time, "%d%d:%d%d",
-            ten_minutes,
-            unit_minutes,
-            ten_seconds,
-            unit_seconds);
-
-    stringToDisplayLine(time, '$');
-
-
-    write(1, "\x1b[2J", 4);
-    for(int i = 0; i < 8; i++)
-    {
-      write(1, display_line[i], 80);
-      write(1, "\r\n", 2);
-    }
-    write(1, "\x1b[5;1H", 6);
 //    write(1, "\r\n", 2);
     seconds -= 1;
     if(seconds >= 0) sleep(1);
