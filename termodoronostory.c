@@ -4,36 +4,193 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define CRLF "\r\n"
 #define ABUF_INIT {NULL, 0}
+
+#define FONT_COLON_INDEX 10
+#define FONT_DECPT_INDEX 11
+
+#define INPUT_QUEUE_SIZE 10
+
+#define DISPLAY_LINE_LENGTH 80
+#define COMMAND_LINE_LENGTH 80
 
 /* Time Font
    the time consists of 8 x 5 numbers composed of any character the user
    specifies. I'll be using bit fields of 5 for data efficiency.
 */
 
-char time_font[12][5]; // 12 characters (0 - 9 + ':' and '.')
+char time_font[13][5]; // 12 characters (0 - 9 + ':' and '.')
 
 // a buffer that holds one 13 character string ready to be printed to the
 // terminal line by line.
-char display_line[8][80]; 
+char display_line[8][COMMAND_LINE_LENGTH];
 
-char instructions[] = "Termodoro: the macOS terminal pomodoro technique tool.\nShortcuts: \n\tC-p ..... begin pomodoro\n\tC-s ..... begin short break\n\tC-l ..... begin long break\n\tC-c ..... enter a command\n\tC-h ..... open help document with less";
+char instructions[] = "Termodoro: the macOS terminal pomodoro technique tool.\r\nShortcuts: \n\r\tC-p ..... begin pomodoro\r\n\tC-s ..... begin short break\r\n\tC-l ..... begin long break\r\n\tC-c ..... enter a command\r\n\tC-h ..... open help document with less";
 
 char command_prompt[] = "enter a command >>> ";
-char command_line[80];
+char command_line[COMMAND_LINE_LENGTH];
+
+/***************** INPUT QUEUE ****************/
+
+// a circular buffer of char
+char input_queue[INPUT_QUEUE_SIZE];
+
+// indexes for the queue
+int input_queue_back;
+int input_queue_front;
+
+
+/* initQueue
+   set queue variables to initial values. After running, inputQueueIsEmpty
+   must return true.
+ */
+void initInputQueue()
+{
+  for(int i = 0; i < INPUT_QUEUE_SIZE; i++)
+  {
+    input_queue[i] = '\0';
+  }
+  input_queue_back = 0;
+  input_queue_front = 0;
+}
+
+int inputQueueIsFull()
+{
+  return (input_queue_back - input_queue_front) == INPUT_QUEUE_SIZE;
+}
+
+int inputQueueIsEmpty()
+{
+  return input_queue_back == input_queue_front;
+}
+
+int inputEnqueue(char new_value)
+{
+  if(inputQueueIsFull())
+  {
+    return -1;
+  }
+  else
+  {
+    input_queue[input_queue_back % INPUT_QUEUE_SIZE] = new_value;
+    input_queue_back += 1;
+    return input_queue_back % INPUT_QUEUE_SIZE;
+  }
+}
+
+int inputDequeue(char* output_val)
+{
+  if(inputQueueIsEmpty())
+  {
+    return -1;
+  }
+  else
+  {
+    *output_val = input_queue[input_queue_front % INPUT_QUEUE_SIZE];
+    input_queue_front += 1;
+    return (input_queue_front - 1) % INPUT_QUEUE_SIZE;
+  }
+}
+
+/* printInputQueue
+   print the current state of the input queue to the terminal
+ */
+void printInputQueue()
+{
+  printf("[");
+  for(int i = 0; i < INPUT_QUEUE_SIZE - 1; i++) {
+    if(input_queue[i] == 0)
+    {
+      printf("0, ");
+      continue;
+    }
+    printf("%c, ", input_queue[i]);
+  }
+  if(input_queue[INPUT_QUEUE_SIZE - 1] == 0)
+  {
+    printf("0]\r\n");
+    printf("\tfront: %d\r\n\tback: %d\r\n", input_queue_front, input_queue_back);
+    printf("\tisFull: %d\r\n", inputQueueIsFull());
+    printf("\tisEmpty: %d\r\n", inputQueueIsEmpty());
+    return;
+  }
+  printf("%c]\r\n", input_queue[INPUT_QUEUE_SIZE -1]);
+  printf("\tfront: %d\r\n\tback: %d\r\n", input_queue_front, input_queue_back);
+  printf("\tisFull: %d\r\n", inputQueueIsFull());
+  printf("\tisEmpty: %d\r\n", inputQueueIsEmpty());
+}
+
+/****************** THREADING *****************/
+
+pthread_t keyboard_listener_thread;
+pthread_t command_processor_thread;
+pthread_t terminal_output_controller_thread;
+
+pthread_mutex_t input_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t display_line_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t command_line_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_cond_t input_queue_full_cond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t input_queue_empty_cond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t terminal_output_controller_done = PTHREAD_COND_INITIALIZER;
+
+pthread_cond_t redraw_screen_cond = PTHREAD_COND_INITIALIZER;
+
 
 struct terminalConfig
 {
+  // this is used for setting the position the cursor has on the command line.
   int cursor_pos_x;
+
+
   int screenRows;
   int screenCols;
-  struct termios orig_termios;    
+
+  // line number on which the command line appears
+  int commandLineNumber;
+
+  int commandPromptShouldBeVisible;
+  int commandLineShouldBeVisible;
+
+  // line number on which the first line of the display line appears
+  int displayLineNumber;
+
+  // shortcut key numbers e.g. command entry default is C-c => 3.
+  char forceKill;
+  char commandEntry;
+  char commandCancel;
+
+  struct termios orig_termios;
 };
 
 struct terminalConfig global_state;
+
+void termodoroInit()
+{
+  // TODO Add code to read an init file and if one isn't present, create one
+
+  global_state.cursor_pos_x = 0;
+  global_state.forceKill = CTRL_KEY('D');
+
+  // default behavior is to toggle the command line using the C-c.
+  global_state.commandEntry = CTRL_KEY('C');
+  global_state.commandCancel = CTRL_KEY('C');
+
+  memset(command_line, '\0', sizeof(command_line));
+
+  // prepare the display
+  write(1, "\x1B[2J", 4);
+  write(1, "\x1B[0;0H", 6);
+  write(1, instructions, sizeof(instructions));
+  write(1, "\x1B[8;0H", 6);
+  global_state.commandLineNumber = 8;
+  global_state.displayLineNumber = 9;
+}
 
 struct abuf {
   char *b;
@@ -46,17 +203,7 @@ void die(const char* const s)
   exit(1);
 }
 
-char terminalReadKey() 
-{
-  char c;
-
-  if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN)
-  {
-    perror("read");
-  }
-  return c;
-}
-
+// this function might not be necessory.
 void terminalMoveCursor(char key)
 {
   switch(key) 
@@ -156,13 +303,15 @@ void initTimeFont()
   time_font[11][3] = 0b00000000;
   time_font[11][4] = 0b00000000;
 
+  // char not in font
+
+  time_font[12][0] = 0b00000000;
+  time_font[12][1] = 0b01111110;
+  time_font[12][2] = 0b01000010;
+  time_font[12][3] = 0b01111110;
+  time_font[12][4] = 0b00000000;
+
 }
-
-/*
-  I can't believe that except for syntax errors I got this right on the second revision.
-
-*/
-
 
 void disableRawMode()
 {
@@ -191,59 +340,20 @@ void enableRawMode()
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-void printSingleDigit(int digit, char ink)
-{
-  char digit_matrix[8][6];
-  for(int i = 0; i < 5; i++)
-  {
-    for(int j = 0; j < 8; j++)
-    {
-      //
-      if((time_font[digit][i] >> j) & (0b00000001))
-      {
-        digit_matrix[j][i] = ink;
-      }
-      else
-      {
-        digit_matrix[j][i] = ' ';
-      }
-    }
-
-  }
-  // add null terminators so these are actual strings
-  for(int i = 0; i < 6; i++)
-  {
-    digit_matrix[i][5] = '\0';
-  }
-  for(int i = 0; i < 8; i++)
-  {
-    printf("%s\n", digit_matrix[i]);
-  }
-  printf("\n\n");
-}
-
-// TODO write function that instead builds a character matrix that goes
-// across the <80 character> screen.
-
 void initDisplayLine()
 {
   memset(display_line, '\0', sizeof(display_line));
 }
 
-// TODO TEST
-void printDisplayLine()
-{
-  for(int i = 0; i < 8; i++)
-  {
-    printf("%s", display_line[i]);
-  }
-}
+/* stringToFontArray
+   since only a small subset of ascii is used, when writing a line of big
+   numbers, we need some way to convert that string to an array of integers
+   that are properly encoded.
+   int array must already be allocated.
 
-// since only a small subset of ascii is used, when writing a line of big
-// numbers, we need some way to convert that string to an array of integers
-// that are properly encoded.
-// int array must already be allocated.
-
+   conv_string : the string to be converted
+   int_array   : output paramater where the string of integers will be put.
+*/
 // TESTED 11-20-2020
 void stringToFontArray(char* const conv_string, int* int_array)
 {
@@ -262,10 +372,10 @@ void stringToFontArray(char* const conv_string, int* int_array)
       switch(conv_string[pos])
       {
       case ':':
-        int_array[pos] = 10;
+        int_array[pos] = FONT_COLON_INDEX;
         break;
       case '.':
-        int_array[pos] = 11;
+        int_array[pos] = FONT_DECPT_INDEX;
         break;
       default:
         int_array[pos] = 12; // I'll add a "char not in character set"
@@ -286,36 +396,9 @@ int stringToDisplayLine(char* const display_string, char ink)
   {
     return -1;
   }
+
   initDisplayLine();
-  // two options: draw line by line, or character by character.
-  // basically, column by column or row by row.
-  // since we're reading a string char by char, I think that
-  // column by column is a better idea.
 
-  // we can use a very similar algorithm to the one we used above.
-
-  /* for(int i = 0; i < 5; i++) */
-  /* { */
-  /*     for(int j = 0; j < 8; j++) */
-  /*     { */
-  /*         // */
-  /*         if((time_font[digit][i] >> j) & (0b00000001)) */
-  /*         { */
-  /*             digit_matrix[j][i] = ink; */
-  /*         } */
-  /*         else */
-  /*         { */
-  /*             digit_matrix[j][i] = ' '; */
-  /*         } */
-  /*     } */
-  /* } */
-
-  /* Unfortunately, this implies that we'll be using a three nested for
-   * loop.
-   */
-
-  // this variable is used so that we can put an offset for which character
-  // we're currently drawing.
   int past_char_column_offset = 0;
 
   int int_string[13];
@@ -353,10 +436,280 @@ int stringToDisplayLine(char* const display_string, char ink)
   return 0;
 }
 
-// TODO write a thread function that handles all keyboard input asynchronously
-// This would be like a producer
+void executeCommand(char* command_buffer)
+{
+}
+
+// TODO write a thread function that handles all screen output
+
+// this was actually a bad idea. We'll make this a normal function
+void* terminalOutputController(void* arg)
+{
+  /* this takes all of the elements that need to be drawn to the screen and
+     figures out how to do that.
+     elements:
+
+     instructions - a static buffer. this won't be drawn each time. It'll be left
+     at the top of the screen.
+
+     command_line - this is positioned at the line specified in global_state and
+     the length of the command prompt. command
+
+     whether not the command prompt is seen is determined by a variable in
+     terminalConfig
+     global_state.commandPromptShouldBeVisible
+  */
+  /* while(1) */
+  /* { */
+  /*   pthread_mutex_lock(&stdout_mutex); */
+  /*   pthread_cond_wait(&redraw_screen_cond, &stdout_mutex); */
+
+    char term_command[8];
+
+    if(global_state.commandPromptShouldBeVisible)
+    {
+      sprintf(term_command, "\x1B[%d;1H", global_state.commandLineNumber);
+      write(1, term_command, strlen(term_command));
+      write(1, command_prompt, strlen(command_prompt));
+    }
+    else
+    {
+      // hide the command line.
+      char* cp_mask = (char*) malloc(strlen(command_prompt));
+      memset(cp_mask, ' ', strlen(command_prompt));
+      sprintf(term_command, "\x1B[%d;1H", global_state.commandLineNumber);
+      write(1, term_command, strlen(term_command));
+      write(1, cp_mask, strlen(command_prompt));
+      free(cp_mask);
+    }
+
+    if(global_state.commandLineShouldBeVisible)
+    {
+      if(global_state.commandPromptShouldBeVisible)
+      {
+        sprintf(term_command, "\x1B[%d;%dH",
+                global_state.commandLineNumber,
+                (int)strlen(command_prompt));
+
+        write(1, term_command, strlen(term_command));
+      }
+      // we assume that the command line is a null term string
+        write(1, command_line, strlen(command_line));
+    }
+    else
+    {
+      write(1, "\x1B[2K", 4);
+      if(global_state.commandPromptShouldBeVisible)
+      {
+        sprintf(term_command, "\x1B[%d;%dH",
+                global_state.commandLineNumber,
+                0);
+
+        write(1, term_command, strlen(term_command));
+        write(1, command_prompt, strlen(command_prompt));
+      }
+
+      char* cl_mask = (char*) malloc(strlen(command_line));
+      memset(cl_mask, ' ', strlen(command_line));
+
+      sprintf(term_command, "\x1B[%d;%dH",
+              global_state.commandLineNumber,
+              (int)strlen(command_prompt));
+
+      write(1, term_command, strlen(term_command));
+      write(1, "\x1B[H", 3);
+    }
+
+
+  /*   pthread_cond_signal(&terminal_output_controller_done); */
+  /*   pthread_mutex_unlock(&stdout_mutex); */
+  /* } */
+  return NULL;
+}
+
+/* captureLine
+ * given a char buffer and starting index, append or insert the current input
+ * into the char buffer until a cancel or return is received.
+ */
+void captureLine(char* line, int index, int should_update_screen, int line_max)
+{
+  // we basically have the same kind of loop that's in processInput, but
+  // this function encapsulates interaction with a given buffer
+  while(1)
+  {
+    int debug_line = 10;
+    // first get appending correct
+    //
+    pthread_mutex_lock(&input_queue_mutex);
+    while(inputQueueIsEmpty())
+    {
+      pthread_cond_wait(&input_queue_empty_cond, &input_queue_mutex);
+    }
+    char c;
+    inputDequeue(&c);
+    pthread_mutex_unlock(&input_queue_mutex);
+
+    if(c == global_state.commandEntry)
+    {
+      // cancel the command by placing a null pointer in line
+      line = NULL;
+      return;
+    }
+    else if(c == '\r')
+    {
+      // line is ready to be submitted.
+      write(1, "\r\n", 2);
+      return;
+    }
+    else if(c == 127 && index > 0)
+    {
+      // move write index back
+      index -= 1;
+      // erase character
+      line[index] = '\0';
+      // check if screen update is turned on
+      if(should_update_screen)
+      {
+        /* pthread_mutex_lock(&command_line_mutex); */
+        // kill the command line
+        global_state.commandLineShouldBeVisible = 0;
+        // redraw the screen
+        terminalOutputController(NULL);
+        /* pthread_cond_signal(&redraw_screen_cond); */
+        /* pthread_cond_wait(&terminal_output_controller_done, &command_line_mutex); */
+        // turn command line back on
+        global_state.commandLineShouldBeVisible = 1;
+        // redraw screen
+        terminalOutputController(NULL);
+        /* pthread_cond_signal(&redraw_screen_cond); */
+        /* pthread_mutex_unlock(&command_line_mutex); */
+      }
+    }
+    else if(index < line_max){
+      line[index] = c;
+      line[index + 1] = '\0';
+      index += 1;
+    }
+    if(should_update_screen)
+    {
+      /* pthread_cond_signal(&redraw_screen_cond); */
+      terminalOutputController(NULL);
+    }
+  }
+}
+
+/************************* THREAD FUNCTIONS ***********************/
+
+/* Emergency shutdown: this thread is started when keyboard input is about
+   to be blocked (because of a full input queue, most likely). In case a bug
+   is causing the input pipeline to block, this thread will be able to terminate
+   the program and save all data that was being worked on
+*/
+void* emergencyShutdown(void* arg)
+{
+  while(1)
+  {
+    char c;
+    if(read(STDIN_FILENO, &c, 1) == -1 && errno!= EAGAIN)
+    {
+      perror("emergencyShutdown");
+      exit(1);
+    }
+
+    if(c == 4)
+    {
+      disableRawMode();
+      printf("You are seeing this because you shut down termodoro in an emergency.\n");
+      exit(1);
+    }
+  }
+}
+
+void* keyboardListener(void* arg)
+{
+  char c;
+
+  // this is an event loop. This thread blocks while it waits for input.
+  // we can't allow this since we need another thread to act as a timer,
+  // if we also want to issue commands asynchronously while the timer is still
+  // running.
+  while(1) {
+    if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN)
+    {
+    }
+
+    if(c == global_state.forceKill)
+    {
+      disableRawMode();
+      exit(0);
+    }
+
+    pthread_mutex_lock(&input_queue_mutex);
+    if(inputEnqueue(c) == -1)
+    {
+      pthread_t emergencyThread;
+      pthread_create(&emergencyThread, NULL, emergencyShutdown, NULL);
+      pthread_cond_wait(&input_queue_full_cond, &input_queue_mutex);
+      inputEnqueue(c);
+    }
+    pthread_cond_signal(&input_queue_empty_cond);
+    pthread_mutex_unlock(&input_queue_mutex);
+  }
+  return NULL;
+}
+
+// this doesn't necessarily need to be a separate thread, but I think it makes
+// some sense to do it this way. 
+void* processInput(void* arg)
+{
+  int processing_command = 0;
+  while(1)
+  {
+    pthread_mutex_lock(&input_queue_mutex);
+    while(inputQueueIsEmpty())
+    {
+      pthread_cond_wait(&input_queue_empty_cond, &input_queue_mutex);
+    }
+
+    char c;
+    inputDequeue(&c);
+    pthread_mutex_unlock(&input_queue_mutex);
+
+    // handle a command
+    if(c == global_state.commandEntry)
+    {
+
+      global_state.commandPromptShouldBeVisible = 1;
+      global_state.commandLineShouldBeVisible = 1;
+      /* pthread_cond_signal(&redraw_screen_cond); */
+
+      terminalOutputController(NULL);
+
+
+      captureLine(command_line, 0, 1, COMMAND_LINE_LENGTH);
+
+      executeCommand(command_line);
+
+      global_state.commandPromptShouldBeVisible = 0;
+      global_state.commandLineShouldBeVisible = 0;
+      /* pthread_cond_signal(&redraw_screen_cond); */
+      terminalOutputController(NULL);
+
+      memset(command_line, '\0', sizeof(command_line));
+    }
+  }
+  return NULL;
+}
+
 
 // TODO write a thread function that handles the actual timer.
+
+void* timerManager(void* arg)
+{
+  return NULL;
+}
+
+
 
 // this way, the main thread can handle exiting when the keyboard
 
@@ -365,16 +718,23 @@ int stringToDisplayLine(char* const display_string, char ink)
  * take an integer number of seconds and convert it to a mm:ss format and write
  * that to the display line.
  */
-void timeToDisplayLine(int seconds)
+int timeToDisplayLine(int seconds)
 {
     char time[6];
 
+    if(seconds > 5999)
+    {
+      // we shouldn't allow more seconds to be converted to this format than
+      // will fit. 99:59 = 5999 seconds. sprintf will attempt to write 7
+      // characters which would not be correct, and might cause a segfault.
+      return -1;
+    }
+    // extract from seconds each position in the number.
     int ten_minutes = ((seconds / 60) % 60 - ((seconds / 60) % 10)) / 10;
     int unit_minutes = (seconds / 60) % 10;
     int ten_seconds = (seconds / 10) % 6;
     int unit_seconds = seconds % 10;
 
-//    printf("%d %d : %d %d \r\n", ten_minutes, unit_minutes, ten_seconds, unit_seconds); // for debugging
     sprintf(time, "%d%d:%d%d",
             ten_minutes,
             unit_minutes,
@@ -383,52 +743,160 @@ void timeToDisplayLine(int seconds)
 
     stringToDisplayLine(time, '$');
 
-    write(1, "\x1b[5;1H", 6);
-
     for(int i = 0; i < 8; i++)
     {
         write(1, display_line[i], 80);
         write(1, "\r\n", 2);
     }
+    return seconds;
 }
-h
 
+
+/************************* UNIT TESTS *************************/
+
+#ifdef UNIT_TESTS
+
+void UnitTests()
+{
+  initInputQueue();
+  printInputQueue();
+
+  inputEnqueue('-');
+  printInputQueue();
+  inputEnqueue('1');
+  printInputQueue();
+  inputEnqueue('2');
+  printInputQueue();
+  inputEnqueue('3');
+  printInputQueue();
+  inputEnqueue('4');
+  printInputQueue();
+  inputEnqueue('5');
+  printInputQueue();
+  inputEnqueue('6');
+  printInputQueue();
+  inputEnqueue('7');
+  printInputQueue();
+  inputEnqueue('8');
+  printInputQueue();
+  inputEnqueue('9');
+  printInputQueue();
+
+  char output;
+  
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+
+  inputEnqueue('A');
+  printInputQueue();
+  inputEnqueue('B');
+  printInputQueue();
+  inputEnqueue('C');
+  printInputQueue();
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+
+  inputDequeue(&output);
+  printInputQueue();
+  printf("\toutput: %c\n", output);
+}
+
+#endif
 
 int main(int argc, char** argv) {
 
+  #ifdef UNIT_TESTS
+
+  UnitTests();
+
+  #endif
+  #ifndef UNIT_TESTS
+  termodoroInit();
   initTimeFont();
   initDisplayLine();
 
   enableRawMode();
 
-  int seconds;
-  if(argc != 2) {
-    printf("Usage ./simpleTimer mm:ss\n");
-    exit(-1);
-  } else if(strlen(argv[1]) != 5) {
-    printf("usage ./simpleTimer mm:ss\n");
-    exit(-1);
-  } else {
-    int minutes;
-    sscanf(argv[1], "%d:%d", &minutes, &seconds);
-    seconds += 60 * minutes;
-  }
-
-  write(1, "\x1b[5;1yH", 3);
-  write(1, "\x1b[2K", 4);
+  pthread_create(&keyboard_listener_thread, NULL, keyboardListener, NULL);
+  pthread_create(&command_processor_thread, NULL, processInput, NULL);
+  /* pthread_create(&terminal_output_controller_thread, NULL, */
+  /*                terminalOutputController, NULL); */
 
 
-  write(1, "\x1b[2J", 4);
-  while(1)
-  {
-      timeToDisplayLine(seconds);
+  while(1) sleep(1);
+/*   int seconds; */
+/*   if(argc != 2) { */
+/*     printf("Usage ./simpleTimer mm:ss\n"); */
+/*     exit(-1); */
+/*   } else if(strlen(argv[1]) != 5) { */
+/*     printf("usage ./simpleTimer mm:ss\n"); */
+/*     exit(-1); */
+/*   } else { */
+/*     int minutes; */
+/*     sscanf(argv[1], "%d:%d", &minutes, &seconds); */
+/*     seconds += 60 * minutes; */
+/*   } */
 
-//    write(1, "\r\n", 2);
-    seconds -= 1;
-    if(seconds >= 0) sleep(1);
-    else break;
-  }
+/*   write(1, "\x1b[5;1yH", 3); */
+/*   write(1, "\x1b[2K", 4); */
+
+
+/*   write(1, "\x1b[2J", 4); */
+/*   while(1) */
+/*   { */
+/*       timeToDisplayLine(seconds); */
+
+/* //    write(1, "\r\n", 2); */
+/*     seconds -= 1; */
+/*     if(seconds >= 0) sleep(1); */
+/*     else break; */
+/*   } */
 
   //system("say \"short break\"");
 
+  #endif
 }
