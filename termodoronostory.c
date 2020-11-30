@@ -18,6 +18,11 @@
 #define DISPLAY_LINE_LENGTH 80
 #define COMMAND_LINE_LENGTH 80
 
+
+/****************************** ERROR ********************************/
+
+FILE* errorLog;
+
 /* Time Font
    the time consists of 8 x 5 numbers composed of any character the user
    specifies. I'll be using bit fields of 5 for data efficiency.
@@ -156,8 +161,9 @@ struct terminalConfig
 
   int commandPromptShouldBeVisible;
   int commandLineShouldBeVisible;
+  int displayLineShouldBeVisible;
 
-  // line number on which the first line of the display line appears
+  // linne number on which the first line of the display line appears
   int displayLineNumber;
 
   // shortcut key numbers e.g. command entry default is C-c => 3.
@@ -190,6 +196,38 @@ void termodoroInit()
   write(1, "\x1B[8;0H", 6);
   global_state.commandLineNumber = 8;
   global_state.displayLineNumber = 9;
+
+  global_state.commandLineShouldBeVisible = 0;
+  global_state.commandPromptShouldBeVisible = 0;
+  global_state.displayLineShouldBeVisible = 0;
+}
+
+void logProgramState(char* label)
+{
+  fprintf(errorLog,
+          "program state report: %s\n"
+          "\tcursor_pos_x = %d\n"
+          "\tforceKill = %d\n"
+          "\tcommandEntry = %d\n"
+          "\tcommandCancel = %d\n"
+          "\tcommandLineNumber = %d\n"
+          "\tdisplayLineNumber = %d\n"
+          "\tcommandLine = %s\n"
+          "\tcommandLineShouldBeVisible = %d\n"
+          "\tcommandPromptShouldBeVisible = %d\n"
+          "\tdisplayLineShouldBeVisible = %d\n",
+          label,
+          global_state.cursor_pos_x,
+          global_state.forceKill,
+          global_state.commandEntry,
+          global_state.commandCancel,
+          global_state.commandLineNumber,
+          global_state.displayLineNumber,
+          command_line,
+          global_state.commandLineShouldBeVisible,
+          global_state.commandPromptShouldBeVisible,
+          global_state.displayLineShouldBeVisible);
+  fflush(errorLog);
 }
 
 struct abuf {
@@ -436,10 +474,6 @@ int stringToDisplayLine(char* const display_string, char ink)
   return 0;
 }
 
-void executeCommand(char* command_buffer)
-{
-}
-
 // TODO write a thread function that handles all screen output
 
 // this was actually a bad idea. We'll make this a normal function
@@ -458,72 +492,97 @@ void* terminalOutputController(void* arg)
      whether not the command prompt is seen is determined by a variable in
      terminalConfig
      global_state.commandPromptShouldBeVisible
+
+     displayLine - the display line contains the actual time remaining on the clock.
   */
-  /* while(1) */
-  /* { */
-  /*   pthread_mutex_lock(&stdout_mutex); */
-  /*   pthread_cond_wait(&redraw_screen_cond, &stdout_mutex); */
 
-    char term_command[8];
+  logProgramState("\nterminalOutputController pre execution");
+  char term_command[8];
 
-    if(global_state.commandPromptShouldBeVisible)
+  if(global_state.displayLineShouldBeVisible)
+  {
+    sprintf(term_command, "\x1B[%d;%dH",
+            global_state.displayLineNumber,
+            0);
+    write(1, term_command, strlen(term_command));
+    for(int i = 0; i < 8; i++)
     {
-      sprintf(term_command, "\x1B[%d;1H", global_state.commandLineNumber);
-      write(1, term_command, strlen(term_command));
-      write(1, command_prompt, strlen(command_prompt));
+      write(1, display_line[i], 80);
+      write(1, "\r\n", 2);
     }
-    else
-    {
-      // hide the command line.
-      char* cp_mask = (char*) malloc(strlen(command_prompt));
-      memset(cp_mask, ' ', strlen(command_prompt));
-      sprintf(term_command, "\x1B[%d;1H", global_state.commandLineNumber);
-      write(1, term_command, strlen(term_command));
-      write(1, cp_mask, strlen(command_prompt));
-      free(cp_mask);
-    }
-
-    if(global_state.commandLineShouldBeVisible)
-    {
-      if(global_state.commandPromptShouldBeVisible)
-      {
-        sprintf(term_command, "\x1B[%d;%dH",
-                global_state.commandLineNumber,
-                (int)strlen(command_prompt));
-
-        write(1, term_command, strlen(term_command));
-      }
-      // we assume that the command line is a null term string
-        write(1, command_line, strlen(command_line));
-    }
-    else
+  }
+  else
+  {
+    sprintf(term_command, "\x1B[%d;%dH",
+            global_state.displayLineNumber,
+            0);
+    write(1, term_command, strlen(term_command));
+    for(int i = 0; i < 8; i++)
     {
       write(1, "\x1B[2K", 4);
-      if(global_state.commandPromptShouldBeVisible)
-      {
-        sprintf(term_command, "\x1B[%d;%dH",
-                global_state.commandLineNumber,
-                0);
+      write(1, "\n\r", 2);
+    }
+  }
 
-        write(1, term_command, strlen(term_command));
-        write(1, command_prompt, strlen(command_prompt));
-      }
+  if(global_state.commandPromptShouldBeVisible)
+  {
+    sprintf(term_command, "\x1B[%d;1H", global_state.commandLineNumber);
+    write(1, term_command, strlen(term_command));
+    write(1, command_prompt, strlen(command_prompt));
+  }
+  else
+  {
+    // hide the command prompt
+    char* cp_mask = (char*) malloc(strlen(command_prompt));
+    memset(cp_mask, ' ', strlen(command_prompt));
+    sprintf(term_command, "\x1B[%d;1H", global_state.commandLineNumber);
+    write(1, term_command, strlen(term_command));
+    write(1, cp_mask, strlen(command_prompt));
+    free(cp_mask);
+  }
 
-      char* cl_mask = (char*) malloc(strlen(command_line));
-      memset(cl_mask, ' ', strlen(command_line));
-
+  if(global_state.commandLineShouldBeVisible)
+  {
+    if(global_state.commandPromptShouldBeVisible)
+    {
       sprintf(term_command, "\x1B[%d;%dH",
               global_state.commandLineNumber,
               (int)strlen(command_prompt));
 
       write(1, term_command, strlen(term_command));
-      write(1, "\x1B[H", 3);
+    }
+    else
+    {
+      sprintf(term_command, "\x1B[%d;%dH",
+              global_state.commandLineNumber,
+              1);
+    }
+    // we assume that the command line is a null term string
+    write(1, command_line, strlen(command_line));
+  }
+  else
+  {
+    write(1, "\x1B[2K", 4);
+    if(global_state.commandPromptShouldBeVisible)
+    {
+      sprintf(term_command, "\x1B[%d;%dH",
+              global_state.commandLineNumber,
+              0);
+
+      write(1, term_command, strlen(term_command));
+      write(1, command_prompt, strlen(command_prompt));
     }
 
+    char* cl_mask = (char*) malloc(strlen(command_line));
+    memset(cl_mask, ' ', strlen(command_line));
 
-  /*   pthread_cond_signal(&terminal_output_controller_done); */
-  /*   pthread_mutex_unlock(&stdout_mutex); */
-  /* } */
+    sprintf(term_command, "\x1B[%d;%dH",
+            global_state.commandLineNumber,
+            (int)strlen(command_prompt));
+
+    write(1, term_command, strlen(term_command));
+    write(1, "\x1B[H", 3);
+  }
   return NULL;
 }
 
@@ -595,6 +654,61 @@ void captureLine(char* line, int index, int should_update_screen, int line_max)
       /* pthread_cond_signal(&redraw_screen_cond); */
       terminalOutputController(NULL);
     }
+  }
+}
+
+void executeCommand(char* command_buffer, int command_buffer_size)
+{
+  logProgramState("executeCommand pre-execution");
+  if(strcmp(command_buffer, "setDisplayLine") == 0)
+  {
+    // clear command line
+    global_state.commandLineShouldBeVisible = 0;
+    terminalOutputController(NULL);
+    memset(command_buffer, '\0', command_buffer_size);
+
+    // capture input
+    global_state.commandLineShouldBeVisible = 1;
+    global_state.commandPromptShouldBeVisible = 0;
+    terminalOutputController(NULL);
+    captureLine(command_buffer, 0, 1, command_buffer_size);
+
+    fprintf(errorLog, "executeCommand:setDisplayLine 2\n\tstrlen(command_buffer) = %d,\n\tcommand_buffer = %s\n", (int)strlen(command_buffer), command_buffer);
+    logProgramState("executeCommand > if(strcmp(command_buffer, \"setDisplayLine\") == 0);");
+    // TODO change this magic number to a macro
+    if(strlen(command_buffer) > 13)
+    {
+      fprintf(errorLog, "executeCommand: setDisplayLine 3\n\tstrlen(command_buffer) = %d,\n\tcommand_buffer = %s\n", (int)strlen(command_buffer), command_buffer);
+      logProgramState("executeCommand > if(strcmp(command_buffer, \"setDisplayLine\") == 0) > if(strlen(command_buffer) > 13) <1>");
+
+      global_state.commandPromptShouldBeVisible = 0;
+      global_state.commandLineShouldBeVisible = 1;
+      char message[] = "That string was too long";
+      strcpy(command_buffer, message);
+      terminalOutputController(NULL);
+
+      fprintf(errorLog, "executeCommand: setDisplayLine 4\n\tstrlen(command_buffer) = %d,\n\tcommand_buffer = %s\n", (int)strlen(command_buffer), command_buffer);
+      logProgramState("executeCommand > if(strcmp(command_buffer, \"setDisplayLine\") == 0) > if(strlen(command_buffer) > 13) <2>");
+    }
+    else
+    {
+      stringToDisplayLine(command_line, '$');
+    }
+  }
+  else if(strcmp(command_buffer, "showDisplayLine") == 0)
+  {
+    logProgramState("executeCommand: else if(strcmp(command_buffer, \"showDisplayLine\") == 0)");
+    terminalOutputController(NULL);
+
+  }
+  else
+  {
+    global_state.commandLineShouldBeVisible = 1;
+
+    fprintf(errorLog, "executeCommand: Command Not Recognized\n");
+    memset(command_line, '\0', sizeof(command_line));
+    strcpy(command_line, "ERROR: Command Not Recognized");
+    terminalOutputController(NULL);
   }
 }
 
@@ -688,10 +802,10 @@ void* processInput(void* arg)
 
       captureLine(command_line, 0, 1, COMMAND_LINE_LENGTH);
 
-      executeCommand(command_line);
+      executeCommand(command_line, COMMAND_LINE_LENGTH);
 
       global_state.commandPromptShouldBeVisible = 0;
-      global_state.commandLineShouldBeVisible = 0;
+//      global_state.commandLineShouldBeVisible = 0;
       /* pthread_cond_signal(&redraw_screen_cond); */
       terminalOutputController(NULL);
 
@@ -709,15 +823,7 @@ void* timerManager(void* arg)
   return NULL;
 }
 
-
-
-// this way, the main thread can handle exiting when the keyboard
-
-/*
- * timeToDisplayLine
- * take an integer number of seconds and convert it to a mm:ss format and write
- * that to the display line.
- */
+/* starting at the current cursor location, write the display line to the screen. */
 int timeToDisplayLine(int seconds)
 {
     char time[6];
@@ -849,6 +955,8 @@ void UnitTests()
 
 int main(int argc, char** argv) {
 
+  errorLog = fopen("termodoroerror.txt", "a");
+  fprintf(errorLog, "%s", "=====================================================\n");
   #ifdef UNIT_TESTS
 
   UnitTests();
