@@ -5,7 +5,6 @@ Termodoro is a tool I'm creating to help me keep track of work time vs break
 time with the [pomodoro
 technique](https://en.wikipedia.org/wiki/Pomodoro_Technique). It is
 intended to be a lead up to another project that will be a more
-
 comprehensive tool that helps manage my time.
 
 My internship last summer (2020) saw me keeping close track of how I spent
