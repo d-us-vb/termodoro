@@ -2,14 +2,24 @@
 version 0.01
 
 Termodoro is a tool I'm creating to help me keep track of work time vs break
-time. It is intended to be a lead up to another project that will be a more
-comprehensive tool that helps manage your time.
+time with the [pomodoro
+technique](https://en.wikipedia.org/wiki/Pomodoro_Technique). It is
+intended to be a lead up to another project that will be a more
+
+comprehensive tool that helps manage my time.
 
 My internship last summer (2020) saw me keeping close track of how I spent
 my time at the office, and it felt sort of clunky using an excel
 spreadsheet that gradually became longer and longer. That app is going to
 be much more complex than this, so I'm starting off with a simple(r)
 pomodoro timer.
+
+## Why not just use Emacs (org-mode or something similar)?
+
+I don't like the emacs solution to this. I tried it for several weeks and
+found it more difficult to use than it was worth.find emacs time logging to
+be unintuitive.
+
 
 # Notes on the files
 
@@ -34,7 +44,7 @@ hope).
 ## Where's ncurses?
 
 I'm learning how terminals work with this project, so I'm not using
-ncurses. I'll revice it later to use ncurses.
+ncurses. I'll revise it later to use ncurses.
 
 
 # Compiling
