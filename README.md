@@ -16,8 +16,7 @@ pomodoro timer.
 ## Why not just use Emacs (org-mode or something similar)?
 
 I don't like the emacs solution to this. I tried it for several weeks and
-found it more difficult to use than it was worth.find emacs time logging to
-be unintuitive.
+found it more difficult to use than it was worth.
 
 
 # Notes on the files
@@ -30,13 +29,16 @@ But this the scope of this project outgrew a simple programming tutorial.
 - termodoronostory.c contains the first attempt at the full app. It's a
   hacky mess.
 - termodoro2.c contains a better thought out version. 
+- termodoro.org contains the design description as an Emacs org document.
+  It's just plain text file with lines wrapped, so it should be no issue
+  viewing it in a standard text editor.
 
 
 ## Why C?
 
 Because it's what I've been doing a lot of right now. Also, I'm using this
 as a simple way of practicing with multithreaded programming in C. Maybe I
-won't use c for multithreading in practice, but it's a good exercise (I
+won't use C for multithreading in practice, but it's a good exercise (I
 hope).
 
 
@@ -49,8 +51,14 @@ ncurses. I'll revise it later to use ncurses.
 # Compiling
 
 In version 0.01, the entire project is kept in a single .c file (currently
-termodoro2.c). Compile this with
+termodoro2.c). Compile this with:
 
-clang termodoro2.c -o termodoro -lpthread
+```clang termodoro2.c -o termodoro -lpthread```
 
-# Usage
+# (theoretical) Usage
+
+It isn't even close to being done, but this is the proposed usage.
+
+Upon startup, you're met with some basic instructions on how to use the
+app. A bunch of shortcuts.
+
