@@ -698,6 +698,7 @@ void executeCommand(char* command_buffer, int command_buffer_size)
   else if(strcmp(command_buffer, "showDisplayLine") == 0)
   {
     logProgramState("executeCommand: else if(strcmp(command_buffer, \"showDisplayLine\") == 0)");
+    global_state.displayLineShouldBeVisible = 1;
     terminalOutputController(NULL);
 
   }

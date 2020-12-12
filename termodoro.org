@@ -1,5 +1,5 @@
 
-* Termodoro: the macOS terminal utility to help you keep track of your time
+* Termodoro: the macOS terminal app to help you keep track of your time
   Termodoro is as stepping stone to a bunch of other console based apps
   that I want to write. Termodoro is written by entering VT100 terminal
   commands by hand to give me practice understanding how the terminal
@@ -23,132 +23,178 @@
   gains (other than avoiding polling) but rather because it makes handling
   asynchronous i/o more straightforward. Primarily output, though.
 
-  Several threads: keyboard input - this thread is blocked until a key is
-  pressed then it adds the value to a queue of keypresses master - this
-  thread reads input and can stop the timer thread
+  The biggest issue is the timer. Putting the timer in a separate thread
+  presents a huge simplification of the design, rather than needing to
+  treat the timer incrementing by one second as a separate event. That
+  would mean, like, polling. Yuck.
 
-  timer - this thread handles writing to the displayLine the time
+  I would not attempt doing it this way of I was dealing with any kind of
+  library that wasn't completely thread-documented.
+  
+* Implementation
+  
+** Threads
 
-  draw
+   If this was a text editor, then I would probably use processes instead,
+   one process per buffer, and each buffer gets its own Lua/Commander
+   intepreter.
 
-  the keyboardListener thread adds anything it captures from the keyboard
-  to an input queue that inputProcessor thread takes from while there's
-  data in the queue.
+   But this is not a text editor, and I don't like dealing with ipc just yet.
 
-  For thread safety, there's a very good reason why we try to not have
-  state incorporated into the queue. We'd prefer only having one thread
-  writing to the queue.
-
-** handling editor state
-   Any sort of state that gets reflected on the screen directly is stored
-   in the  global_state structure.
-
-   variables that need to be handled in this:
-
-*** cursor position (just x)
-     This is used when entering a command. Of course, C-f and C-b are the
-     default. These should be configurable by the user by entering a
-     command.
-
-     NOTE it may be tricky to write an insertion algorithm, but good
-     practice for when I finally feel ready to tackle maxim
-
-*** 
-** input queue
-
-   for simplicity, if front = back that means that the queue is empty. if
-   back = front - 1, that means the queue is full.
-
-   this means that back always points to the location where (if the queue
-   isn't full, it's going to put the next queued element.
-
-   this also means that front always points to the element that is next to
-   be dequeued unless the queue is empty
-
-** Entering command mode
-   this works so far. press C-c to enter a command, but I prefer if it's
-   customizable.
-   
-   if a person likes compiling from source, they can edit the source code.
-   But later .termodoro home folder config file will be used to configure
-   the app.
-   
-** Drawing to the screen
-   A sepaarate thread is in control of actually drawing to the screen. A
-   thread sends a request for a screen redraw by using that was actually a
-   terrible idea. There was no telling when the scheduler would actually
-   decide to run that thread, so there was tons of flickering. And
-   sometimes it straight up wouldn't do it.
-   
-   There should definitely be a more robust system for building the screen
-   layout, and I think I'm going to take the
-   
-   screen buffer idea and have a function that builds the screen each time.
-   I was hoping that it would be possible not to do it that way, but oh
-   well. I was hoping that we'd be able to only need to redraw one or two
-   lines at a time, but I'm not sure it can be helped.
-   
-   two functions are required: build output buffer, redraw screen.
-
-   build output buffer doesn't need to take any paramaters. It uses the
-   current state of the program to do that. It requires a mutex on every
-   single element that affects the elements currently displayed on the
-   screen. I'm not sure if that means that it should have a unique mutex
-   for every screen element, or if it should instead have only one
-   stdout_mutex.
-   
-   redraw screen will probably be the only function that calls build output
-   buffer. I don't see a point in having other functions call it. I mean,
-   obviously, you'd probably want to display any changes you made to the
-   output buffer immediately on the screen.
-   
-   Perhaps there should be a few other functions to help handle outputting
-   data onto the screen. I already have a displayline element that is
-   accessed only through functions. Perhaps every element that gets drawn
-   to the screen should only be accessible through setter functions.
-
-   In which case, there should instead of being terminal state structures,
-   but two. One is for application state (model) and the other is for
-   display state (view). I guess that mvc once more prevails.
-
-   I have to wonder, however, why threads didn't work. I was probably
-   misusing signals, really. Maybe signals aren't fast enough.
-
-   Lastly, I'll need to rewrite this in nCurses. That will undoubtedly help
-   with the portability. Using only VT100 is probably fine for the most
-   part, but I think that using an actual library that's so well developed
-   would speak better to prospective employers that are interested in
-   looking up my work. Being able to use libraries is a great skill.
-   
-** Processing input
-
-   this is a toughy. I guess there should be a master thread to coordinate
-   between threads. It would just call functions based on non-display
-   characters that it receives.
-   
-   the question: when they enter command mode, should processInput hand it
-   off to a different function to handle getting the command, or should
-   process input do it internally?
-   
-   I guess it makes sense to delegate grabbing command input to a different
-   function.
-
-   Shortcuts: C-p ..... begin pomodoro C-s ..... begin short break C-l
-	 ..... begin long break C-c ..... enter a command C-h ..... open help
-	 document with less
-
-   lessons learned over the last few days of hacking away at this:
-
-
-   
+*** Some Notes about threading
+    For thread safety, there's a very good reason why we try to not have
+    state incorporated into the queue. We'd prefer only having one thread
+    writing to the queue.
 
   
+*** timer
+    This thread handles writing to the displayLine the time
 
+    
+*** keyboardListener
+    Adds anything it captures from the keyboard
+    to an input queue that inputProcessor thread takes from while there's
+    data in the queue.
 
-  
+    this could probably be called something else.
 
-  
+** Data
+*** screen_state
+    Any sort of state that gets reflected on the screen directly is stored
+    in the  screen_state structure.
+    
+**** Window Size
+     When TimeTracker comes about, I'll need to handle SIGWINCH, but I don't
+     see much utility in doing so at this point.
 
-
+     Instead, for now, all I plan in doing is assuming that the size of the
+     screen is static 80x24. Like pesky unresizable desktop apps.
    
-  
+**** cursor position (just x)
+      This is used when entering a command. Of course, C-f and C-b are the
+      default. These should be configurable by the user by entering a
+      command.
+
+      NOTE it may be tricky to write an insertion algorithm, but good
+      practice for when I finally feel ready to tackle maxim
+
+**** screen_buffer
+     holds the current contents of the screen. This is constructed and drawn
+     to the screen every time updateScreen is called. As such, it must be
+     thread safe.
+
+*** input queue
+
+     for simplicity, if front = back that means that the queue is empty. if
+     back = front - 1, that means the queue is full.
+
+     this means that back always points to the location where (if the queue
+     isn't full, it's going to put the next queued element.
+
+     this also means that front always points to the element that is next to
+     be dequeued unless the queue is empty
+
+     
+*** display line
+    the display line is designed to be an ascii art large form of the
+    amount of time on the clock. e.g.
+    "12345" would be rendered as
+    
+    #+begin_src text
+       $$    $$$   $$$     $  $$$$$ 
+      $$$   $$ $$ $  $$   $$  $   $ 
+      $$$       $     $  $ $  $     
+       $$      $$   $$  $  $  $$$$  
+       $$     $$     $$ $  $  $  $$ 
+       $$    $$       $ $$$$$     $ 
+      $$$$  $$    $  $$    $  $$ $$ 
+      $$$$  $$$$$  $$$     $   $$$
+    #+end_src
+
+    The font is created by filling a structure.
+
+    TODO: This should maybe be configured by loading the data from a text
+    file.
+
+    
+** Behavior
+*** Drawing to the screen
+    A sepaarate thread is in control of actually drawing to the screen. A
+    thread sends a request for a screen redraw by using that was actually a
+    terrible idea. There was no telling when the scheduler would actually
+    decide to run that thread, so there was tons of flickering. And
+    sometimes it straight up wouldn't do it.
+   
+    There should definitely be a more robust system for building the screen
+    layout, and I think I'm going to take the
+   
+    screen buffer idea and have a function that builds the screen each time.
+    I was hoping that it would be possible not to do it that way, but oh
+    well. I was hoping that we'd be able to only need to redraw one or two
+    lines at a time, but I'm not sure it can be helped.
+   
+    two functions are required: build output buffer, redraw screen.
+
+    build output buffer doesn't need to take any paramaters. It uses the
+    current state of the program to do that. It requires a mutex on every
+    single element that affects the elements currently displayed on the
+    screen. I'm not sure if that means that it should have a unique mutex
+    for every screen element, or if it should instead have only one
+    stdout_mutex.
+   
+    redraw screen will probably be the only function that calls build output
+    buffer. I don't see a point in having other functions call it. I mean,
+    obviously, you'd probably want to display any changes you made to the
+    output buffer immediately on the screen.
+   
+    Perhaps there should be a few other functions to help handle outputting
+    data onto the screen. I already have a displayline element that is
+    accessed only through functions. Perhaps every element that gets drawn
+    to the screen should only be accessible through setter functions.
+
+    In which case, there should instead of being terminal state structures,
+    but two. One is for application state (model) and the other is for
+    display state (view). I guess that mvc once more prevails.
+
+    I have to wonder, however, why threads didn't work. I was probably
+    misusing signals, really. Maybe signals aren't fast enough.
+
+    Lastly, I'll need to rewrite this in nCurses. That will undoubtedly help
+    with the portability. Using only VT100 is probably fine for the most
+    part, but I think that using an actual library that's so well developed
+    would speak better to prospective employers that are interested in
+    looking up my work. Being able to use libraries is a great skill.
+   
+*** Processing input
+
+    this is a toughy. I guess there should be a master thread to coordinate
+    between threads. It would just call functions based on non-display
+    characters that it receives.
+   
+    the question: when they enter command mode, should processInput hand it
+    off to a different function to handle getting the command, or should
+    process input do it internally?
+   
+    I guess it makes sense to delegate grabbing command input to a different
+    function.
+
+    Shortcuts:
+
+    #+begin_src text
+      C-p ..... begin pomodoro
+      C-s ..... begin short break
+      C-l ..... begin long break
+      C-c ..... enter a command
+      C-h ..... open help document with less
+    #+end_src
+
+    lessons learned over the last few days of hacking away at this:
+
+*** Entering command mode
+    this works so far. press C-c to enter a command, but I prefer if it's
+    customizable.
+   
+    if a person likes compiling from source, they can edit the source code.
+    But later .termodoro home folder config file will be used to configure
+    the app.
+   
