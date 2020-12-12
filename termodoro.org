@@ -22,14 +22,14 @@
    medical devices company. It's a pretty good style. Makes the code nice
    and readable.
 
-   variables are all snake_case
-   functions are all CamelCase (with the exception of Main)
-   macros and constant variables are all ALL_CAPS_SNAKE_CASE
-   data types (structures and typedefs) are CamelCase.
-   lines will not exceed 90 characters, and shoot for less than 80.
-   
-   for functions with lots of paramaters, lists will match up with the left
-   parenthesis.
+   - variables are all snake_case
+   - functions are all CamelCase (with the exception of Main)
+   - macros and constant variables are all ALL_CAPS_SNAKE_CASE
+   - data types (structures and typedefs) are CamelCase.
+   - lines will not exceed 90 characters, and shoot for less than 80.
+   - for functions with lots of paramaters, lists will match up with the
+     left parenthesis.
+     
 * Architecture
 
   termodoro is a multithreaded application. This is not for efficiency
@@ -52,7 +52,8 @@
    one process per buffer, and each buffer gets its own Lua/Commander
    intepreter.
 
-   But this is not a text editor, and I don't like dealing with ipc just yet.
+   But this is not a text editor, and I don't feel like dealing with ipc
+   and adding scripting just yet.
 
 *** Some Notes about threading
     For thread safety, there's a very good reason why we try to not have
@@ -65,20 +66,20 @@
 
     
 *** keyboardListener
-    Adds anything it captures from the keyboard
-    to an input queue that inputProcessor thread takes from while there's
-    data in the queue.
-
+    Adds anything it captures from the keyboard to an input queue that
+    inputProcessor thread takes from while there's data in the queue.
+    
     this could probably be called something else.
 
 ** Data
 *** screen_state
     Any sort of state that gets reflected on the screen directly is stored
-    in the  screen_state structure.
+    in the  screen_state structure. Members TBD.
     
 **** Window Size
      When TimeTracker comes about, I'll need to handle SIGWINCH, but I don't
-     see much utility in doing so at this point.
+     see much utility in doing so at this point. (I'll be using curses at
+     that point as well.)
 
      Instead, for now, all I plan in doing is assuming that the size of the
      screen is static 80x24. Like pesky unresizable desktop apps.
@@ -87,14 +88,6 @@
       This is used when entering a command. Of course, C-f and C-b are the
       default. These should be configurable by the user by entering a
       command.
-
-      NOTE it may be tricky to write an insertion algorithm, but good
-      practice for when I finally feel ready to tackle maxim
-
-**** screen_buffer
-     holds the current contents of the screen. This is constructed and drawn
-     to the screen every time updateScreen is called. As such, it must be
-     thread safe.
 
 *** input queue
 
@@ -124,11 +117,10 @@
       $$$$  $$$$$  $$$     $   $$$
     #+end_src
 
-    The font is created by filling a structure.
+    The font is created by filling a structure with bitfields.
 
     TODO: This should maybe be configured by loading the data from a text
     file.
-
     
 *** Configuration
     I was debating this for a while, but I think it would be a good idea to
@@ -197,66 +189,24 @@
 
 ** Behavior
 *** Drawing to the screen
-    A sepaarate thread is in control of actually drawing to the screen. A
-    thread sends a request for a screen redraw by using that was actually a
-    terrible idea. There was no telling when the scheduler would actually
-    decide to run that thread, so there was tons of flickering. And
-    sometimes it straight up wouldn't do it.
-   
-    There should definitely be a more robust system for building the screen
-    layout, and I think I'm going to take the
-   
-    screen buffer idea and have a function that builds the screen each time.
-    I was hoping that it would be possible not to do it that way, but oh
-    well. I was hoping that we'd be able to only need to redraw one or two
-    lines at a time, but I'm not sure it can be helped.
-   
-    two functions are required: build output buffer, redraw screen.
+    The screen is treated more like a way of displaying the state of the
+    program conditionally. It only reflects the current settings of the
+    variables. As such, it's handled by a single function, RedrawScreen,
+    which looks at any variable that can change the creen renders
+    accordingly.
 
-    build output buffer doesn't need to take any paramaters. It uses the
-    current state of the program to do that. It requires a mutex on every
-    single element that affects the elements currently displayed on the
-    screen. I'm not sure if that means that it should have a unique mutex
-    for every screen element, or if it should instead have only one
-    stdout_mutex.
-   
-    redraw screen will probably be the only function that calls build output
-    buffer. I don't see a point in having other functions call it. I mean,
-    obviously, you'd probably want to display any changes you made to the
-    output buffer immediately on the screen.
-   
-    Perhaps there should be a few other functions to help handle outputting
-    data onto the screen. I already have a displayline element that is
-    accessed only through functions. Perhaps every element that gets drawn
-    to the screen should only be accessible through setter functions.
-
-    In which case, there should instead of being terminal state structures,
-    but two. One is for application state (model) and the other is for
-    display state (view). I guess that mvc once more prevails.
-
-    I have to wonder, however, why threads didn't work. I was probably
-    misusing signals, really. Maybe signals aren't fast enough.
-
-    Lastly, I'll need to rewrite this in nCurses. That will undoubtedly help
-    with the portability. Using only VT100 is probably fine for the most
-    part, but I think that using an actual library that's so well developed
-    would speak better to prospective employers that are interested in
-    looking up my work. Being able to use libraries is a great skill.
-   
+    Variables affect the screen: (incomplete list)
+    - display_line
+    - command_line
+    - insructions
+    
 *** Processing input
 
-    this is a toughy. I guess there should be a master thread to coordinate
-    between threads. It would just call functions based on non-display
-    characters that it receives.
-   
-    the question: when they enter command mode, should processInput hand it
-    off to a different function to handle getting the command, or should
-    process input do it internally?
-   
-    I guess it makes sense to delegate grabbing command input to a different
-    function.
+    There are two types of input: shortcuts and commands
 
-    Shortcuts:
+    Shortcuts are entered by using the control key and a letter key..
+    Commands are entered using the the command shortcut and then typing the
+    command and pressing enter.
 
     #+begin_src text
       C-p ..... begin pomodoro
@@ -266,9 +216,9 @@
       C-h ..... open help document with less
     #+end_src
 
-    lessons learned over the last few days of hacking away at this:
-
 *** Commands
+
+    each command
     
 **** list of commands
      
@@ -279,10 +229,25 @@
 ***** save_configuration
       this will write the current configuration variables to the
       configuration file in the home folder (.termodoro)
+
+***** start
+      start takes an argument of "-pomodoro" "-long_break" "-short_break" or a
+      time in the format of "mm:ss"
+
+***** reset
+      reset sets the timer up again for a new activity. It can take an
+      argument of "-cancel" take away the current logged time due to that
+      session from the daily cumulative total.
+      
+***** log_add
+      log_add adds extra time to your daily goal that you weren't using the
+      built-in timer for.
+      
+      
 ** Algorithms
 *** Command Line capture
-
-    I'm an efficiency nut. I do not like the idea of having to move each
-    character over each keypress. 
+    this is a text insertion algorithm. TBD
     
+*** rendering the screen 
+    layout and stuff. Very serious. TBD
    

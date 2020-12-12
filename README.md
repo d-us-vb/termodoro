@@ -55,6 +55,10 @@ termodoro2.c). Compile this with:
 
 ```clang termodoro2.c -o termodoro -lpthread```
 
+# Installation
+
+We're not even close. Stay tuned folks. (2020-12-12)
+
 # (theoretical) Usage
 
 It isn't even close to being done, but this is the proposed usage.
