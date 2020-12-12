@@ -16,7 +16,20 @@
   that using events is much safer and easier alternative, and that for long
   running computations, you should spawn processes. I'm probably using
   threads for a bad reason here: UI asynchrony, but it's fun.
-  
+
+** Coding Style
+   I will be using the same coding style as a certain St. Paul based
+   medical devices company. It's a pretty good style. Makes the code nice
+   and readable.
+
+   variables are all snake_case
+   functions are all CamelCase (with the exception of Main)
+   macros and constant variables are all ALL_CAPS_SNAKE_CASE
+   data types (structures and typedefs) are CamelCase.
+   lines will not exceed 90 characters, and shoot for less than 80.
+   
+   for functions with lots of paramaters, lists will match up with the left
+   parenthesis.
 * Architecture
 
   termodoro is a multithreaded application. This is not for efficiency
@@ -117,6 +130,71 @@
     file.
 
     
+*** Configuration
+    I was debating this for a while, but I think it would be a good idea to
+    have the small amount of configuration that the user can do be stored
+    in a file.
+
+    The defaults are hard coded, and if a home folder configuration file is
+    not available, it creates one and puts all the default configuration
+    settings in it. On exit, if the configuration has been changed, it
+    moves the previous config file to a backup directory and writes the
+    current configuration to a new file and puts it in the home folder.
+
+    The next question is, of course, what things go into this
+    configuration?
+
+    - defaults:
+      - time for a pomodoro
+      - time for a break
+      - time for long break
+      - behavior on end of pomodoro or break
+    - Shortcuts:
+      - begin pomodoro
+      - begin short break
+      - begin long break
+      - enter command
+      - exit
+      - view help document.
+      - add description of activity
+      - export log to csv
+
+
+    After answering that, we need to get the format down. Ideally, we use a
+    grammar that is extremely easy to parse
+
+    I think that this will serve as a default
+
+    #+begin_src text
+      pomodoro_length_seconds 1500 
+      pomodoro_short_break_length_seconds 300
+      pomodoro_long_break_length_seconds 1200
+      pomodoro_set_length 4
+      default_session_pomodoro_goal 15
+
+      continue_tracking_time_upon_completion true
+      auto_start_short_breaks false
+      auto_start_long_breaks false
+
+      show_big_time true
+      show_small_time true
+      show_time_logged_so_far true
+      show_time_left true
+
+      exit_shortcut e
+      begin_pomodoro_shortcut p
+      begin_short_break_shortcut s
+      begin_long_break_shortcut l
+      enter_command_shortcut c
+      previous_char_shortcut b
+      next_char_shortcut f
+      view_help_document_shortcut h
+
+      alert_with_audio true
+      alert_audio_file watch_alarm.wav
+
+    #+end_src
+
 ** Behavior
 *** Drawing to the screen
     A sepaarate thread is in control of actually drawing to the screen. A
@@ -190,11 +268,21 @@
 
     lessons learned over the last few days of hacking away at this:
 
-*** Entering command mode
-    this works so far. press C-c to enter a command, but I prefer if it's
-    customizable.
-   
-    if a person likes compiling from source, they can edit the source code.
-    But later .termodoro home folder config file will be used to configure
-    the app.
+*** Commands
+    
+**** list of commands
+     
+***** set
+      set is used to set configuration paramater. Any variable that affects
+      the behavior of app.
+
+***** save_configuration
+      this will write the current configuration variables to the
+      configuration file in the home folder (.termodoro)
+** Algorithms
+*** Command Line capture
+
+    I'm an efficiency nut. I do not like the idea of having to move each
+    character over each keypress. 
+    
    
