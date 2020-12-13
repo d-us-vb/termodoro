@@ -162,7 +162,7 @@
       pomodoro_short_break_length_seconds 300
       pomodoro_long_break_length_seconds 1200
       pomodoro_set_length 4
-      default_session_pomodoro_goal 15
+      pomodoro_default_session_goal 15
 
       continue_tracking_time_upon_completion true
       auto_start_short_breaks false
@@ -181,6 +181,7 @@
       previous_char_shortcut b
       next_char_shortcut f
       view_help_document_shortcut h
+      interrupt_current_activity i
 
       alert_with_audio true
       alert_audio_file watch_alarm.wav
@@ -214,6 +215,7 @@
       C-l ..... begin long break
       C-c ..... enter a command
       C-h ..... open help document with less
+      C-i ..... interrupt (pause) the current activity timer
     #+end_src
 
 *** Commands
