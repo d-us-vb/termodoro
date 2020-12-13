@@ -25,7 +25,6 @@
 
 // string constants for configuration and command interpreting
 
-const char BEGIN_SHORT_BREAK_SHORTCUT_STRING[] = "begin_short_break_shortcut";
 const char POMODORO_LENGTH_SECONDS_STRING[] = "pomodoro_length_seconds";
 const char POMODORO_SHORT_BREAK_LENGTH_SECONDS_STRING[] =
   "pomodoro_short_break_length_seconds";
@@ -46,6 +45,7 @@ const char SHOW_TIME_LEFT_STRING[] = "show_time_left";
 
 const char EXIT_SHORTCUT_STRING[] = "exit_shortcut";
 const char BEGIN_POMODORO_SHORTCUT_STRING[] = "begin_pomodoro_shortcut";
+
 const char BEGIN_SHORT_BREAK_SHORTCUT_STRING[] = "begin_short_break_shortcut";
 const char BEGIN_LONG_BREAK_SHORTCUT_STRING[] = "begin_long_break_shortcut";
 const char ENTER_COMMAND_SHORTCUT_STRING[] = "enter_command_shortcut";
