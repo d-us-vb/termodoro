@@ -23,7 +23,8 @@
 
 #define WINDOW_HEIGHT 24
 
-// string constants for configuration and
+// string constants for configuration and command interpreting
+
 const char BEGIN_SHORT_BREAK_SHORTCUT_STRING[] = "begin_short_break_shortcut";
 const char POMODORO_LENGTH_SECONDS_STRING[] = "pomodoro_length_seconds";
 const char POMODORO_SHORT_BREAK_LENGTH_SECONDS_STRING[] =
@@ -55,3 +56,8 @@ const char VIEW_HELP_DOCUMENT_SHORTCUT_STRING[] = "view_help_document_shortcut";
 const char ALERT_WITH_AUDIO_STRING[] = "view_help_document_shortcut";
 const char ALERT_AUDIO_FILE_STRING[] = "alert_audio_file";
 
+
+int main(int argc, char** argv)
+{
+  return 0;
+}

@@ -247,6 +247,9 @@
 ** Algorithms
 *** Command Line capture
     this is a text insertion algorithm. TBD
+**** Discussion of Possible Algorithms
+
+     
     
 *** rendering the screen 
     layout and stuff. Very serious. TBD
