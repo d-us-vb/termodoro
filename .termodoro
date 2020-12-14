@@ -1,0 +1,27 @@
+pomodoro_length_seconds 1500 
+pomodoro_short_break_length_seconds 300
+pomodoro_long_break_length_seconds 1200
+pomodoro_set_length 4
+pomodoro_default_session_goal 15
+
+continue_tracking_time_upon_completion true
+auto_start_short_breaks false
+auto_start_long_breaks false
+
+show_big_time true
+show_small_time true
+show_time_logged_so_far true
+show_time_left true
+
+exit_shortcut e
+begin_pomodoro_shortcut p
+begin_short_break_shortcut s
+begin_long_break_shortcut l
+enter_command_shortcut c
+previous_char_shortcut b
+next_char_shortcut f
+view_help_document_shortcut h
+interrupt_current_activity i
+
+alert_with_audio true
+alert_audio_file watch_alarm.wav

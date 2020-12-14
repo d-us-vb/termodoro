@@ -72,6 +72,62 @@
     this could probably be called something else.
 
 ** Data
+   
+*** Data Structures                                                             
+
+    #+begin_src c
+      typedef struct AppConfigurationContainer
+      {
+        /****************** Basic Settings **********************/
+        int pomodoro_length_seconds;
+        int pomodoro_short_break_length_seconds;
+        int pomodoro_long_break_length_seconds;
+        int pomodoro_set_length_seconds;
+        int pomodoro_default_session_goal;
+
+        /****************** Behavior Settings *******************/
+        char continue_tracking_time_upon_completion;
+        char auto_start_short_breaks;
+        char auto_start_long_breaks;
+
+        /****************** Display Settings ********************/
+        char show_big_time;
+        char show_small_time;
+        char show_time_left;
+        char show_command_prompt;
+        char show_command_line;
+        char show_instructions;
+        char show_pomodoros_completed;
+        char show_activity_log;
+
+        /****************** Shortcuts ***************************/
+        // these should all be set to the number associated with that control
+        // number (c => 3, i => 9)
+        char begin_pomodoro_shortcut;
+        char begin_short_break_shortcut;
+        char begin_long_break_shortcut;
+        char enter_command_shortcut;
+        char previous_char_shortcut;
+        char next_char_shortcut;
+        char view_help_document_shortcut;
+        char interrupt_current_activity_shortcut;
+        char exit_shortcut;
+
+        /****************** Sound Settings **********************/
+        char alert_with_audio;
+        char* alert_audio_file_path;
+
+        /****************** Font Settings ***********************/
+
+        // this will hold character arrays as bit fields.
+        // not every slot will be occupied, but in theory, all of ascii could be
+        // employed. this is so that it can avoid needing a translation function
+        // that would need to be updated every time a new character gets added,
+        // not to mention would potentially waste system resources.
+        char* display_line_font[128];
+
+      } AppConfigurationContainer; 
+    #+End_src
 *** screen_state
     Any sort of state that gets reflected on the screen directly is stored
     in the  screen_state structure. Members TBD.
@@ -157,6 +213,8 @@
 
     I think that this will serve as a default
 
+    
+
     #+begin_src text
       pomodoro_length_seconds 1500 
       pomodoro_short_break_length_seconds 300
@@ -185,9 +243,11 @@
 
       alert_with_audio true
       alert_audio_file watch_alarm.wav
-
     #+end_src
 
+    
+**** An assumption about the configuration file
+     it won't ever exceed 64 kibibytes.
 ** Behavior
 *** Drawing to the screen
     The screen is treated more like a way of displaying the state of the
@@ -199,7 +259,25 @@
     Variables affect the screen: (incomplete list)
     - display_line
     - command_line
-    - insructions
+    - basic insructions
+
+
+    in general, I think I'll use a nano like interface for shortcuts
+
+    top line:
+    #+begin_src text
+      C-p pomodoro | C-s short break | C-l long break | C-c command   
+    #+end_src
+   next is the command line. The prompt looks like this:
+   #+begin_src text
+     Termodoro >>>
+   #+end_src
+
+   the display line is able to write 13 characters to it, technically, but
+   we'll only ever use 7 or 8.
+
+   
+   
     
 *** Processing input
 
@@ -244,8 +322,30 @@
 ***** log_add
       log_add adds extra time to your daily goal that you weren't using the
       built-in timer for.
+
+**** Processing Commands
+
+     For testing this feature, of course, I'll need a driver. I think it
+     will be simplest if I just do that first. While it seems like a
+     flowery feature that's not necessary (which it sort of is), if I can
+     get it down, it would be great practice for when I want to start
+     ernest work on /Commander/.
+
+     For now, testing can just be done inside of main. I'm going to fully
+     debug the command interpreter before starting work on anything else.
+
+     
+***** The command Interpreter
+      There are numerous ways of going about this (of course). For now, I'm
+      just going to use a list of if/else statements with the common cases
+      first.
+
+      I guess that I have to write the default config first, though.
+
       
+
       
+            
 ** Algorithms
 *** Command Line capture
     this is a text insertion algorithm. TBD
@@ -255,4 +355,17 @@
     
 *** rendering the screen 
     layout and stuff. Very serious. TBD
+
+
    
+* User Manual
+  
+** Configuration and Customization
+
+*** Default Configuration
+   
+*** Setting a Custom Big Font
+
+*** Editing the Configuration File
+
+    Important: The configuration file may not exceed 64 kibibytes!

@@ -27,7 +27,7 @@ But this the scope of this project outgrew a simple programming tutorial.
 
 - termodoro.c contains the beginnings of a story.
 - termodoronostory.c contains the first attempt at the full app. It's a
-  hacky mess.
+  hacky mess that I wrote in 2 days.
 - termodoro2.c contains a better thought out version. 
 - termodoro.org contains the design description as an Emacs org document.
   It's just plain text file with lines wrapped, so it should be no issue
@@ -59,10 +59,7 @@ termodoro2.c). Compile this with:
 
 We're not even close. Stay tuned folks. (2020-12-12)
 
-# (theoretical) Usage
+# Usage
 
-It isn't even close to being done, but this is the proposed usage.
-
-Upon startup, you're met with some basic instructions on how to use the
-app. A bunch of shortcuts.
+For now, you should look at the org document for this part.
 
