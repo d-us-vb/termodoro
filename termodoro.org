@@ -29,6 +29,17 @@
    - lines will not exceed 90 characters, and shoot for less than 80.
    - for functions with lots of paramaters, lists will match up with the
      left parenthesis.
+   - No nonstandard abbreviations in variable names.
+     Config for "configuration" is fine.
+     ldr for "loader" is not.
+   - no obviously ambiguous abbreviations, regardless of whether or not the
+     context gives a hint as to which abbreviation is meant.
+
+     stat for "status" is not okay, since it could also mean "statistic" or
+     "static".
+   - dynamic memory allocation shall be avoided except on the initalization
+     of the app. (Any function that dynamically allocates memory can only
+     be called once, and most likely at the startup of the program.
      
 * Architecture
 
@@ -43,9 +54,52 @@
 
   I would not attempt doing it this way of I was dealing with any kind of
   library that wasn't completely thread-documented.
+
+  Termodoro is supposed to be inside of the user apps folder.
+
+  
+** directory structure
+   /home/user/Apps/termodoro/
+   -- bin
+   -- logs
+   -- config
   
 * Implementation
-  
+** Error Handling
+   This really isn't a big app, so I don't see the need for excessive error handling, but I do see a purpose in using a system log.
+*** Log Manager
+    The log manager is a function that uses the configuration to determine
+    how much to put into the log. Most of the time, it will only log
+    important things, like the results of an important event, like runninga
+    command or the timer dinging.
+
+    NOTE it would be fun to create a really good log managing system that
+    supported a bunch of modes that you could set with format strings explaining what specific things you wanted in your log file for which level of verbosity.
+
+    It could just use format strings for each one.
+
+    It should support three levels of verbosity, 4 if I'm into it:
+    1. Normal
+
+       Only main events are logged, like a command was executed, a file was
+       written to, or the timer dinged.
+
+    2. Verbose
+       
+       keypresses are logged and each time the timer ticks down a second,
+       the log is written to.
+
+    3. debug simple
+
+       it logs the entire program state after every event.
+
+    4. debug advanced
+
+       it logs only the variables that have changed since the last state
+       dump.
+
+       
+    
 ** Threads
 
    If this was a text editor, then I would probably use processes instead,
@@ -60,11 +114,9 @@
     state incorporated into the queue. We'd prefer only having one thread
     writing to the queue.
 
-  
 *** timer
     This thread handles writing to the displayLine the time
 
-    
 *** keyboardListener
     Adds anything it captures from the keyboard to an input queue that
     inputProcessor thread takes from while there's data in the queue.
@@ -72,9 +124,17 @@
     this could probably be called something else.
 
 ** Data
-   
-*** Data Structures                                                             
+*** Data Structures
+    All data structure types end with the word container.
+    
+**** StatusLogConfigContainer
 
+     members:
+     - log file name
+     - level of verbosity
+**** AppConfigContainer
+     this holds configuration parameters that determine the behavior of the
+     app. The variables in here are not frequently used at all.
     #+begin_src c
       typedef struct AppConfigurationContainer
       {
@@ -128,6 +188,14 @@
 
       } AppConfigurationContainer; 
     #+End_src
+**** AppStateContainer
+     This holds highly dynamic data in the program.
+    #+begin_src c
+      struct AppStateContainer
+      {
+  
+      };
+    #+end_src
 *** screen_state
     Any sort of state that gets reflected on the screen directly is stored
     in the  screen_state structure. Members TBD.
@@ -155,7 +223,6 @@
 
      this also means that front always points to the element that is next to
      be dequeued unless the queue is empty
-
      
 *** display line
     the display line is designed to be an ascii art large form of the
@@ -277,8 +344,7 @@
    we'll only ever use 7 or 8.
 
    
-   
-    
+       
 *** Processing input
 
     There are two types of input: shortcuts and commands
@@ -297,7 +363,6 @@
     #+end_src
 
 *** Commands
-
     each command
     
 **** list of commands
@@ -308,7 +373,7 @@
 
 ***** save_configuration
       this will write the current configuration variables to the
-      configuration file in the home folder (.termodoro)
+      configuration file in the config folder.
 
 ***** start
       start takes an argument of "-pomodoro" "-long_break" "-short_break" or a
@@ -344,28 +409,28 @@
 
       
 
-      
-            
+                  
 ** Algorithms
 *** Command Line capture
     this is a text insertion algorithm. TBD
 **** Discussion of Possible Algorithms
 
-     
-    
+         
 *** rendering the screen 
     layout and stuff. Very serious. TBD
 
 
-   
+
+* Work plan
+
+  | time hrs | objective                             |
+  |        8 | get configuration file loader working |
+  |       10 | get the command interpreter working   |
+  |        6 | get the display rendering done.       |
 * User Manual
-  
 ** Configuration and Customization
-
 *** Default Configuration
-   
 *** Setting a Custom Big Font
-
 *** Editing the Configuration File
 
     Important: The configuration file may not exceed 64 kibibytes!
