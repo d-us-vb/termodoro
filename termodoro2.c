@@ -3,22 +3,67 @@
 
 /****** INITIALIZATION *********************************************************/
 
-void InitStatusLog(char* file_name, int verbosity)
+int InitStatusLog(char* file_name, int verbosity_level)
 {
 
-  // Configuration for the status log cannot be done by loading something from
-  // the user configuration file because the status log has to log what happens
-  // while that file is being loaded.
+   // Configuration for the status log cannot be done by loading something from
+   // the user configuration file because the status log has to log what happens
+   // while that file is being loaded.
 
-  // Status log settings can be changed by the user during runtime, but they to
-  // start up with something other than the default requires an argument to be
-  // passed into it from the command line.
+   // Status log settings can be changed by the user during runtime, but they to
+   // start up with something other than the default requires an argument to be
+   // passed into it from the command line.
 
-  // the default settings for the status log are as follews:
+   // the default settings for the status log are as follews:
 
-  // Allocate memory for status log structure
+   // Allocate memory for status log structure
+   int ret;
+   static int first_run = 1;
+   if(first_run)
+   {
+      first_run -= 1;
+      status_log_config = malloc(sizeof(StatusLogConfigContainer));
 
-  return;
+      status_log_config->status_log_file_path = malloc(1024);
+
+      if(file_name == NULL)
+      {
+         strcpy(status_log_config->status_log_file_path,
+                DEFAULT_STATUS_LOG_FILE_PATH);
+      }
+      else
+      {
+         strcpy(status_log_config->status_log_file_path, file_name);
+      }
+
+      status_log_config->verbosity_level = verbosity_level;
+
+      status_log_config->status_log_file_handle =
+         fopen(status_log_config->status_log_file_path, "a+");
+
+      if(status_log_config->status_log_file_handle != NULL)
+      {
+         char message_string[] =
+            "InitStatusLog: Status Log successfully Initialized.\n";
+
+         fwrite(message_string,
+                strlen(message_string),
+                1,
+                status_log_config->status_log_file_handle);
+
+         ret = 0;
+      }
+      else
+      {
+         // an error occurred. too bad.
+         ret = -1;
+      }
+   }
+   else
+   {
+      ret = -1;
+   }
+   return ret;
 }
 
 void LoadBigFont(char* file_name)
@@ -55,18 +100,31 @@ void InterpretCommand(char* command)
 
 int main(int argc, char** argv)
 {
-   // just make sure that I know how ot use scanf.
+
+   int init_status_log_res = InitStatusLog(NULL, 0);
+   if(init_status_log_res == 0)
+   {
+      printf("it worked");
+   }
+
+   init_status_log_res = InitStatusLog(NULL, 1);
+
+   if(init_status_log_res != 0)
+   {
+      printf("something wrong happened with initializing the file");
+   }
+// just make sure that I know how ot use scanf.
 
    app_config = malloc(sizeof(AppConfigContainer));
 
-   FILE* file = fopen(".termodoro", "r");
+   /* FILE* file = fopen(".termodoro", "r"); */
 
-   int numbytesread = fread(app_config->app_config_file_contents,
-                            645,
-                            1,
-                            file);
-   printf("%s: %d\n", "number of bytes read", numbytesread);
+   /* int numbytesread = fread(app_config->app_config_file_contents, */
+   /*                          645, */
+   /*                          1, */
+   /*                          file); */
+   /* printf("%s: %d\n", "number of bytes read", numbytesread); */
 
-   printf("%s\n", app_config->app_config_file_contents);
+   /* printf("%s\n", app_config->app_config_file_contents); */
    return 0;
 }

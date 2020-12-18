@@ -106,8 +106,10 @@ typedef struct AppStateContainer
  * 2. Verbose: all events are logged.
  * 3. Debug: all events are logged and the entire program state is
  *    recorded as well.
+ *
+ * returns 0 on success, -1 if a problem occurred while opening the log file.
  */
-void InitStatusLog(int verbosity);
+int InitStatusLog(char* file_path, int verbosity);
 
 /********* LoadBigFont ********************************************************
  *

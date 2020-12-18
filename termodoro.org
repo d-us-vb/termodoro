@@ -23,23 +23,37 @@
    and readable.
 
    - variables are all snake_case
+     
    - functions are all CamelCase (with the exception of Main)
+     
    - macros and constant variables are all ALL_CAPS_SNAKE_CASE
+     
    - data types (structures and typedefs) are CamelCase.
+     
    - lines will not exceed 90 characters, and shoot for less than 80.
+     
    - for functions with lots of paramaters, lists will match up with the
      left parenthesis.
-   - No nonstandard abbreviations in variable names.
-     Config for "configuration" is fine.
-     ldr for "loader" is not.
+     
+   - No nonstandard abbreviations in variable names. Config for
+     "configuration" is fine. ret for "return", ldr for "loader" is not.
+
    - no obviously ambiguous abbreviations, regardless of whether or not the
      context gives a hint as to which abbreviation is meant.
 
      stat for "status" is not okay, since it could also mean "statistic" or
      "static".
+
    - dynamic memory allocation shall be avoided except on the initalization
      of the app. (Any function that dynamically allocates memory can only
-     be called once, and most likely at the startup of the program.
+     be called once, and most likely at the startup of the program. Any
+     function that uses it must error if called more than once.
+
+   - (as much as I dislike it) we will follow the tenet of structured
+     programming that says "there shall be exactly 1 return statement per
+     function".
+
+     
      
 * Architecture
 
@@ -56,7 +70,6 @@
   library that wasn't completely thread-documented.
 
   Termodoro is supposed to be inside of the user apps folder.
-
   
 ** directory structure
    /home/user/Apps/termodoro/
