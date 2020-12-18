@@ -148,28 +148,31 @@ void InterpretCommand(char* command);
 
 
 
-/*** GLOBALS VARIABLES ************************/
+/*** GLOBALS VARIABLES *********************************************************/
 
-// Use const variables rather than compiler macros for type safety.
 
-// display line font
-const int FONT_COLON_INDEX = 10;
-const int FONT_DECPT_INDEX = 11;
+/****** GENERAL SETTINGS *******************************************************/
 
-// input queue
 const int  INPUT_QUEUE_SIZE = 10;
 
-
-// display constants
-const int DISPLAY_LINE_LENGTH = 80;
 const int COMMAND_LINE_LENGTH = 80;
 
 const int WINDOW_HEIGHT = 24;
 
-//--------------------------
-// string constants
-// for configuration and command interpreting
-//
+
+/****** DISPLAY LINE ***********************************************************/
+
+const int FONT_COLON_INDEX = 10;
+
+const int FONT_DECPT_INDEX = 11;
+
+const int DISPLAY_LINE_LENGTH = 80;
+
+
+/****** COMMAND INTERPRETATION *************************************************/
+
+// when setting one of these via command, these need to be in string form.
+
 const char POMODORO_LENGTH_SECONDS_STRING[] = "pomodoro_length_seconds";
 
 const char POMODORO_SHORT_BREAK_LENGTH_SECONDS_STRING[] =
@@ -221,14 +224,20 @@ const char ALERT_WITH_AUDIO_STRING[] = "view_help_document_shortcut";
 
 const char ALERT_AUDIO_FILE_STRING[] = "alert_audio_file";
 
+
+/****** CONFIGURATION **********************************************************/
+
 const char DEFAULT_CONFIG_FILE_PATH[] = "../config/.termodoro";
 
 const char DEFAULT_STATUS_LOG_FILE_PATH[] = "../logs/termodoro_log.txt";
 
-//--------------------
-// App State Structures
-//
+/****** STATE MANAGEMENT *******************************************************/
+
+StatusLogConfigContainer* status_log_config;
+
 AppConfigContainer* app_config;
+
 AppStateContainer* app_state;
+
 
 #endif

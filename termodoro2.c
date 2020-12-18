@@ -3,8 +3,21 @@
 
 /****** INITIALIZATION *********************************************************/
 
-void InitStatusLog(char* file_name, int verbosity
+void InitStatusLog(char* file_name, int verbosity)
 {
+
+  // Configuration for the status log cannot be done by loading something from
+  // the user configuration file because the status log has to log what happens
+  // while that file is being loaded.
+
+  // Status log settings can be changed by the user during runtime, but they to
+  // start up with something other than the default requires an argument to be
+  // passed into it from the command line.
+
+  // the default settings for the status log are as follews:
+
+  // Allocate memory for status log structure
+
   return;
 }
 
