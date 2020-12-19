@@ -1,4 +1,3 @@
-
 * Termodoro: the macOS terminal app to help you keep track of your time
   Termodoro is as stepping stone to a bunch of other console based apps
   that I want to write. Termodoro is written by entering VT100 terminal
@@ -22,6 +21,8 @@
    medical devices company. It's a pretty good style. Makes the code nice
    and readable.
 
+*** General Coding Guidelines
+   
    - variables are all snake_case
      
    - functions are all CamelCase (with the exception of Main)
@@ -53,8 +54,42 @@
      programming that says "there shall be exactly 1 return statement per
      function".
 
-     
-     
+*** File Layout and Commenting Guidelines
+
+    - In Header files, the order is as follows
+      - Macros
+      - Data structures
+      - Global Variables
+        - these are to be organized logically to the components that use
+          them. Ideally, we do not use globals from one component in
+          another component. TODO move components to individual header
+          files.
+        - typedefs are a type of global. They should also go with the
+          component that uses them.
+      - Banners
+        - Banners are to show the hierarchy of the grouping.
+        - Banners outside of structures should end on column 81 with 0
+          indexed collumns. (Cursor positioned /after/ ~/~.)
+          long and be filled with stars.   
+        - The titles in top level and second level banners should be ALL
+          CAPS
+          - top level banners should be started with ~/***~
+          - subsequent levels always add three stars.
+        - The titles in third level banners should be Title Case
+        - The banners preceding function definitions should match the name
+          of the function verbatim (CamelCase).
+        - Banners should be used inside of structures to group related
+          variables.
+          - structure banners start with
+
+
+
+    example banner:
+
+    /
+
+
+    
 * Architecture
 
   termodoro is a multithreaded application. This is not for efficiency
@@ -110,6 +145,16 @@
 
        it logs only the variables that have changed since the last state
        dump.
+**** Methods
+
+     
+     ~LogFunctionCall(int function_id, char* message)~
+
+     This should be called at the top of every function.
+
+     int function_id: there should be a list of functions defined
+     
+     
 
        
     
@@ -433,7 +478,6 @@
     layout and stuff. Very serious. TBD
 
 
-
 * Work plan
 
   | time hrs | objective                             |
@@ -447,3 +491,4 @@
 *** Editing the Configuration File
 
     Important: The configuration file may not exceed 64 kibibytes!
+    

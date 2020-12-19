@@ -10,11 +10,11 @@ int InitStatusLog(char* file_name, int verbosity_level)
    // the user configuration file because the status log has to log what happens
    // while that file is being loaded.
 
-   // Status log settings can be changed by the user during runtime, but they to
-   // start up with something other than the default requires an argument to be
-   // passed into it from the command line.
+   // Status log settings can be changed by the user during runtime, but if
+   // they need to start up with something other than the default, it
+   // requires an argument to be passed into it from the command line.
 
-   // the default settings for the status log are as follews:
+   // Defaults can be found in the user manual.
 
    // Allocate memory for status log structure
    int ret;
@@ -66,6 +66,12 @@ int InitStatusLog(char* file_name, int verbosity_level)
    return ret;
 }
 
+int LogFunctionCall(functionname_t function_name, char* message)
+{
+   
+}
+
+
 void LoadBigFont(char* file_name)
 {
    return;
@@ -88,6 +94,11 @@ void InitAppConfig()
    // attempt loading from
    return;
 }
+
+/****** STATUS LOG *************************************************************/
+
+
+
 
 /****** COMMAND INTERPRETATION *************************************************/
 

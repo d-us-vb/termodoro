@@ -227,6 +227,15 @@ const char ALERT_WITH_AUDIO_STRING[] = "view_help_document_shortcut";
 const char ALERT_AUDIO_FILE_STRING[] = "alert_audio_file";
 
 
+/****** LOGGING & ERROR HANDLING ***********************************************/
+
+// here for completeness. Dosen't get used. It would constantly call itself.
+const char LOG_FUNCTION_CALL[] = "LogFunctionCall";
+
+const char 
+
+
+
 /****** CONFIGURATION **********************************************************/
 
 const char DEFAULT_CONFIG_FILE_PATH[] = "../config/.termodoro";
