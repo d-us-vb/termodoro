@@ -56,39 +56,84 @@
 
 *** File Layout and Commenting Guidelines
 
-    - In Header files, the order is as follows
+**** In Header files, the order is as follows
+      
       - Macros
+        
       - Data structures
+        
       - Global Variables
+        
         - these are to be organized logically to the components that use
           them. Ideally, we do not use globals from one component in
           another component. TODO move components to individual header
           files.
         - typedefs are a type of global. They should also go with the
           component that uses them.
-      - Banners
-        - Banners are to show the hierarchy of the grouping.
-        - Banners outside of structures should end on column 81 with 0
-          indexed collumns. (Cursor positioned /after/ ~/~.)
-          long and be filled with stars.   
-        - The titles in top level and second level banners should be ALL
-          CAPS
-          - top level banners should be started with ~/***~
-          - subsequent levels always add three stars.
-        - The titles in third level banners should be Title Case
-        - The banners preceding function definitions should match the name
-          of the function verbatim (CamelCase).
-        - Banners should be used inside of structures to group related
-          variables.
-          - structure banners start with
+**** Banners
+     
+      - Banners are to show the hierarchy of the grouping.
+
+      - Banners should always match the indentation of the first item
+       following it.
+       
+      - Banners outside of structures should end on column 81 with 0
+       indexed collumns. (Cursor positioned /after/ ~/~.)
+       long and be filled with stars.
+       
+      - The titles in top level and second level banners should be ALL
+       CAPS
+       
+        - top level banners should be started with ~/***~
+        - subsequent levels always add three stars.
+         
+      - The titles in third level banners should be Title Case
+       
+      - The banners preceding function definitions should match the name
+       of the function verbatim (CamelCase).
+       
+      - Banners should be used inside of structures to group related
+       variables.
+       
+        - structure banners always start with /******
+
+**** Whitespace
+          
+      - whitespace at end of files should be trimmed after editing.
+       
+      - lines should never include trailing whitespace
+       
+      - in emacs, you can run whitespace-cleanup.
+       
+      - statements that are not directly related with each other should
+       be separated by a new line
+
+         - Indentation
+          
+           - indentation should be 3 spaces
+            
+           - use soft tabs.
 
 
 
     example banner:
 
-    /
+    #+begin_src C
+      /*** EXAMPLE TOP ***************************************************************/
 
+      /****** EXAMPLE SECOND LEVEL ***************************************************/
 
+      /********* Example Third Level *************************************************/
+
+      /********* ExampleFunctionHeader ***********************************************/
+
+      struct example
+      {
+         /****** Example First Struct Level **************************/
+      }
+    #+end_src
+
+    
     
 * Architecture
 
