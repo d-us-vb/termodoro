@@ -31,7 +31,8 @@ typedef struct StatusLogConfigContainer
 typedef struct AppConfigContainer
 {
    // this is used as a buffer to store the contents of the configuration file.
-   // It is assumed that the size of the configuration file will not exceed 64 KiB.100
+   // It is assumed that the size of the configuration file will not
+   // exceed 64 KiB
    char app_config_file_contents[0xFFFF];
 
   /****** Basic Settings ****************************************/
@@ -73,7 +74,7 @@ typedef struct AppConfigContainer
    char show_pomodoros_completed;
 
    char show_activity_log;
- 
+
 
   /****** Shortcuts *********************************************/
 
@@ -147,11 +148,9 @@ int InitStatusLog(char* file_path, int verbosity);
  * your liking.
  *
  */
-
-
 void LoadBigFont(char* file_name);
 
-/*** LoadTermodoroConfigFile **************************************************
+/********* LoadTermodoroConfigFile ********************************************
  *
  * This function takes a file name as a c string and attempts to load the
  * app_config global structure with the data.
@@ -265,7 +264,7 @@ typedef const char* const functionname_t;
 functionname_t LOG_FUNCTION_CALL[] = "LogFunctionCall";
 
 /********* Command Interpretation **********************************************/
-functionname_t 
+functionname_t
 
 
 

@@ -64,11 +64,11 @@ int InitStatusLog(char* file_name, int verbosity_level)
       ret = -1;
    }
    return ret;
-} 
+}
 
 int LogFunctionCall(functionname_t function_name, char* message)
 {
-   
+  
 }
 
 
