@@ -30,6 +30,9 @@
    - macros and constant variables are all ALL_CAPS_SNAKE_CASE
      
    - data types (structures and typedefs) are CamelCase.
+
+   - pointer types place the star next to the type name (it's a part of the 
+     time. This should make sense.
      
    - lines will not exceed 90 characters, and shoot for less than 80.
      
@@ -37,7 +40,7 @@
      left parenthesis.
      
    - No nonstandard abbreviations in variable names. Config for
-     "configuration" is fine. ret for "return", ldr for "loader" is not.
+     "configuration", ret for "return" are fine, ldr for "loader" is not.
 
    - no obviously ambiguous abbreviations, regardless of whether or not the
      context gives a hint as to which abbreviation is meant.

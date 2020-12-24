@@ -251,20 +251,44 @@ commandstr_t VIEW_HELP_DOCUMENT_SHORTCUT_STRING[] = "view_help_document_shortcut
 commandstr_t INTERRUPT_CURRENT_ACTIVITY_STRING[] =
    "interrupt_current_activity_shortcut";
 
-commandstr_t ALERT_WITH_AUDIO_STRING[] = "view_help_document_shortcut";
+commandstr_t ALERT_WITH_AUDIO_STRING[] = "alert_with_audio_string";
 
 commandstr_t ALERT_AUDIO_FILE_STRING[] = "alert_audio_file";
 
 
 /****** LOGGING & ERROR HANDLING ***********************************************/
 
+const int VERBOSITY_NORMAL = 1;
+
+const int VERBOSITY_VERBOSE = 2;
+
+const int VERBOSITY_DEBUG = 3;
+
+const int VERBOSITY_DEBUG_ADVANCED = 4;
+
 // this typedef is to make it more clear.
-typedef const char* const functionname_t;
+
 // here for completeness. Dosen't get used. It would constantly call itself.
+
+/********* Function names ******************************************************/
+
+typedef const char* const functionname_t;
 functionname_t LOG_FUNCTION_CALL[] = "LogFunctionCall";
 
+functionname_t LOAD_TERMODORO_CONFIG_FILE = "LoadTermodoroConfigFile";
+
+functionname_t LOAD_BIG_FONT = "LoadBigFont";
+
+functionname_t INIT_APP_CONFIG = "InitAppConfig";
+
+functionname_t INTERPRET_COMMAND = "InterpretCommand";
+
+
+
+
+
 /********* Command Interpretation **********************************************/
-functionname_t
+
 
 
 

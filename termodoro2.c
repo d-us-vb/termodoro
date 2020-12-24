@@ -3,7 +3,9 @@
 
 /****** INITIALIZATION *********************************************************/
 
-int InitStatusLog(char* file_name, int verbosity_level)
+int InitStatusLog(const StatusLogConfigContainer* const status_log_config_local,
+                  char* file_name,
+                  int verbosity_level)
 {
 
    // Configuration for the status log cannot be done by loading something from
@@ -21,27 +23,27 @@ int InitStatusLog(char* file_name, int verbosity_level)
    static int first_run = 1;
    if(first_run)
    {
-      first_run -= 1;
-      status_log_config = malloc(sizeof(StatusLogConfigContainer));
+      first_run = 0;
+      status_log_config_local = malloc(sizeof(StatusLogConfigContainer));
 
-      status_log_config->status_log_file_path = malloc(1024);
+      status_log_config_local->status_log_file_path = malloc(1024);
 
       if(file_name == NULL)
       {
-         strcpy(status_log_config->status_log_file_path,
+         strcpy(status_log_config_local->status_log_file_path,
                 DEFAULT_STATUS_LOG_FILE_PATH);
       }
       else
       {
-         strcpy(status_log_config->status_log_file_path, file_name);
+         strcpy(status_log_config_local->status_log_file_path, file_name);
       }
 
-      status_log_config->verbosity_level = verbosity_level;
+      status_log_config_local->verbosity_level = verbosity_level;
 
-      status_log_config->status_log_file_handle =
-         fopen(status_log_config->status_log_file_path, "a+");
+      status_log_config_local->status_log_file_handle =
+         fopen(status_log_config_local->status_log_file_path, "a+");
 
-      if(status_log_config->status_log_file_handle != NULL)
+      if(status_log_config_local->status_log_file_handle != NULL)
       {
          char message_string[] =
             "InitStatusLog: Status Log successfully Initialized.\n";
@@ -49,7 +51,7 @@ int InitStatusLog(char* file_name, int verbosity_level)
          fwrite(message_string,
                 strlen(message_string),
                 1,
-                status_log_config->status_log_file_handle);
+                status_log_config_local->status_log_file_handle);
 
          ret = 0;
       }
@@ -66,9 +68,23 @@ int InitStatusLog(char* file_name, int verbosity_level)
    return ret;
 }
 
-int LogFunctionCall(functionname_t function_name, char* message)
+int WriteToLog(const StatusLogConfigContainer* const status_log_config_local,
+               functionname_t function_name,
+               char* message,
+               int verbosity_level_local)
 {
-  
+   // for debugging, this depends on the verbosity level.
+   // for now, I'm just going to write what I need for my specific logging
+   // and calls to this as needed, since it really isn't necessary.
+
+   if(status_log_config_local->verbosity_level == verbosity_level_local &&
+      verbosity_level_local == VERBOSITY_NORMAL)
+   {
+      fwrite(status_log_config_local->status_log_file_handle,
+             "%s: %s\n",
+             funtion_name,
+             message);
+   }
 }
 
 
@@ -79,6 +95,7 @@ void LoadBigFont(char* file_name)
 
 int LoadTermodoroConfigFile(char* file_name)
 {
+
    // open the file
    FILE* config_file = fopen(file_name, "r");
 
