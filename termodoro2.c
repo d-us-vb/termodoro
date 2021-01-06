@@ -3,7 +3,7 @@
 
 /****** INITIALIZATION *********************************************************/
 
-int InitStatusLog(const StatusLogConfigContainer* const status_log_config_local,
+int InitStatusLog(StatusLogConfigContainer* status_log_config_local,
                   char* file_name,
                   int verbosity_level)
 {
@@ -69,7 +69,7 @@ int InitStatusLog(const StatusLogConfigContainer* const status_log_config_local,
 }
 
 int WriteToLog(const StatusLogConfigContainer* const status_log_config_local,
-               functionname_t function_name,
+               functionname_t function_name[],
                char* message,
                int verbosity_level_local)
 {
@@ -77,14 +77,18 @@ int WriteToLog(const StatusLogConfigContainer* const status_log_config_local,
    // for now, I'm just going to write what I need for my specific logging
    // and calls to this as needed, since it really isn't necessary.
 
+   int err_ret;
    if(status_log_config_local->verbosity_level == verbosity_level_local &&
       verbosity_level_local == VERBOSITY_NORMAL)
    {
-      fwrite(status_log_config_local->status_log_file_handle,
-             "%s: %s\n",
-             funtion_name,
-             message);
+
+      err_ret = (int)fprintf(status_log_config_local->status_log_file_handle,
+                            "%s: %s\n",
+                            function_name,
+                            message);
    }
+
+   return err_ret;
 }
 
 
@@ -99,9 +103,15 @@ int LoadTermodoroConfigFile(char* file_name)
    // open the file
    FILE* config_file = fopen(file_name, "r");
 
-   // load the file line by line into an array of lines.
+   // load the file into the config structure
    int check_size = fread(app_config->app_config_file_contents,
-                          0xFFFF, 1, config_file);
+                          MAX_CONFIG_FILE_SIZE,
+                          1,
+                          config_file);
+
+   // we'll use an incremental search mechanism.
+//   while()
+
 
    return 0;
 }
@@ -129,25 +139,20 @@ void InterpretCommand(char* command)
 int main(int argc, char** argv)
 {
 
-   int init_status_log_res = InitStatusLog(NULL, 0);
+   int init_status_log_res = InitStatusLog(status_log_config, NULL, 0);
    if(init_status_log_res == 0)
    {
       printf("it worked");
    }
 
-   init_status_log_res = InitStatusLog(NULL, 1);
-
-   if(init_status_log_res != 0)
-   {
-      printf("something wrong happened with initializing the file");
-   }
+   if(WriteToLog())
 // just make sure that I know how ot use scanf.
 
    app_config = malloc(sizeof(AppConfigContainer));
 
    /* FILE* file = fopen(".termodoro", "r"); */
 
-   /* int numbytesread = fread(app_config->app_config_file_contents, */
+   /* int numbytesread = fread(app_config->app_config_file_contentsbranv, */
    /*                          645, */
    /*                          1, */
    /*                          file); */

@@ -162,7 +162,8 @@
   
 * Implementation
 ** Error Handling
-   This really isn't a big app, so I don't see the need for excessive error handling, but I do see a purpose in using a system log.
+   This really isn't a big app, so I don't see the need for excessive error
+   handling, but I do see a purpose in using a system log.
 *** Log Manager
     The log manager is a function that uses the configuration to determine
     how much to put into the log. Most of the time, it will only log
@@ -194,13 +195,13 @@
        it logs only the variables that have changed since the last state
        dump.
 **** Methods
+***** WriteToLog
 
-     
-     ~LogFunctionCall(int function_id, char* message)~
+      This takes a status log config structure, a function name, a message,
+      and a
 
-     This should be called at the top of every function.
 
-     int function_id: there should be a list of functions defined
+      
      
      
 
