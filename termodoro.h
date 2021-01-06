@@ -1,8 +1,6 @@
 #ifndef TERMODORO_H
 #define TERMODORO_H
 
-
-
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -12,6 +10,10 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
+
+/*** Typedefs ******************************************************************/
+
+typedef const char functionname_t;
 
 /*** DATA STRUCTURES ***********************************************************/
 
@@ -323,7 +325,7 @@ const int VERBOSITY_DEBUG_ADVANCED = 4;
 /********* Function names ******************************************************/
 
 // this typeduf should be used in function headers.
-typedef const char functionname_t;
+
 
 char LOG_FUNCTION_CALL[] = "LogFunctionCall";
 

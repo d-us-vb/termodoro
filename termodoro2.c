@@ -134,7 +134,7 @@ int main(int argc, char** argv)
       printf("it worked");
    }
 
-   if(WriteToLog())
+//   if(WriteToLog())
 // just make sure that I know how ot use scanf.
 
    app_config = malloc(sizeof(AppConfigContainer));
