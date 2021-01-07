@@ -50,10 +50,10 @@ ncurses. I'll revise it later to use ncurses.
 
 # Compiling
 
-In version 0.01, the entire project is kept in a single .c file (currently
-termodoro2.c). Compile this with:
+Termodoro requires `clang`. 
 
-```clang termodoro2.c -o termodoro -lpthread```
+use ```clang -o termodoro termodoro2.c -I.```
+and run with ```./termodoro```
 
 # Installation
 
